@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#f59e0b">
+<meta name="mobile-web-app-capable" content="yes">
+<title>نظام المبيعات والمشتريات | أدوات كهربائية ونجف</title>
+<!-- Tailwind CSS عبر CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  try { tailwind.config = { darkMode: 'class' }; } catch (e) {}
+</script>
+<!-- FontAwesome للأيقونات -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- خطوط عربية -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  html { font-size: 17px; }
+  html.fs-small { font-size: 15px; }
+  html.fs-large { font-size: 19px; }
+  body { font-family: "Cairo", "Tajawal", system-ui, sans-serif; }
+  html.ff-tajawal body { font-family: "Tajawal", "Cairo", system-ui, sans-serif; }
+  html.ff-system body { font-family: system-ui, "Segoe UI", Tahoma, sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #f59e0b55; border-radius: 8px; }
+  .ltr { direction: ltr; text-align: left; }
+  #printArea { display: none; }
+  @media print {
+    body.printing #appView, body.printing #loginView, body.printing #toasts { display: none !important; }
+    body.printing #printArea { display: block !important; }
+    @page { size: auto; margin: 5mm; }
+  }
+  .toast-in { animation: toastIn .3s ease; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  input, select, textarea { outline: none; }
+  input:focus, select:focus { border-color: #f59e0b !important; box-shadow: 0 0 0 2px #f59e0b33; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 min-h-screen">
+
+<!-- ================= شاشة الدخول ================= -->
+<div id="loginView" class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
+  <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="mb-4 text-center">
+      <div class="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-3xl text-white">
+        <i class="fa-solid fa-lightbulb"></i>
+      </div>
+      <h1 class="text-xl font-black">تسجيل الدخول</h1>
+      <p class="mt-1 text-sm font-bold text-amber-500">💡 أدوات كهربائية • نجف • أباليك</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">للمستخدمين المفعّلين فقط — لا يوجد تسجيل جديد</p>
+    </div>
+    <form id="loginForm" class="space-y-3">
+      <div>
+        <label class="mb-1 block text-sm font-semibold">البريد الإلكتروني</label>
+        <input id="loginEmail" type="email" dir="ltr" autocomplete="email"
+          class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+          placeholder="you@store.com">
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-semibold">كلمة المرور</label>
+        <input id="loginPass" type="password" dir="ltr" autocomplete="current-password"
+          class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+          placeholder="••••••••">
+      </div>
+      <div id="loginMsg" class="hidden rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-300"></div>
+      <button id="loginBtn" type="submit"
+        class="w-full rounded-lg bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600 disabled:opacity-50">
+        <i class="fa-solid fa-right-to-bracket ml-1"></i> دخول
+      </button>
+    </form>
+    <p class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+      تفعيل الحسابات من لوحة Supabase أو عبر المسؤول فقط.<br>
+      <a href="https://wa.me/201113008004" target="_blank" rel="noopener" class="font-bold text-green-600 underline">
+        <i class="fa-brands fa-whatsapp"></i> تواصل مع الدعم: 01113008004
+      </a>
+    </p>
+  </div>
+</div>
+
+<!-- ================= التطبيق ================= -->
+<div id="appView" class="hidden min-h-screen">
+  <!-- الترويسة -->
+  <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+    <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-xl text-white">
+        <i class="fa-solid fa-lightbulb"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <h1 id="hdrCompany" class="truncate text-lg font-bold">مؤسستي التجارية</h1>
+        <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+          <span id="hdrUser"></span> • <span id="netTxt">🟢 متصل</span><span id="syncTxt"></span>
+        </p>
+      </div>
+      <button id="btnSync" title="مزامنة الآن"
+        class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      <button id="btnLogout" class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700">
+        <i class="fa-solid fa-right-from-bracket ml-1"></i><span data-i18n="logout">خروج</span>
+      </button>
+    </div>
+    <nav class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2" id="mainNav">
+      <button data-v="dash" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-house ml-1"></i><span data-i18n="dashboard">الرئيسية</span></button>
+      <button data-v="sales" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-receipt ml-1"></i><span data-i18n="sales">المبيعات</span></button>
+      <button data-v="purch" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-box ml-1"></i><span data-i18n="purchases">المشتريات</span></button>
+      <button data-v="inv" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-warehouse ml-1"></i><span data-i18n="inventory">المخزون</span></button>
+      <button data-v="rep" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-chart-line ml-1"></i><span data-i18n="reports">التقارير</span></button>
+      <button data-v="set" class="navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold"><i class="fa-solid fa-gear ml-1"></i><span data-i18n="settings">الإعدادات</span></button>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-6">
+
+    <!-- ===== الرئيسية ===== -->
+    <section id="v-dash" class="view space-y-6">
+      <div class="rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 p-5 text-white">
+        <h2 class="text-xl font-black"><i class="fa-solid fa-lightbulb ml-1"></i> <span data-i18n="welcome">أهلاً بك في</span> <span id="dashCompany">مؤسستي التجارية</span></h2>
+        <p class="mt-1 text-sm opacity-90">أدوات كهربائية • لمبات • أباليك • نجف — الأرباح = سعر البيع − سعر الشراء</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">💰 إيراد اليوم</p><p id="stRevD" class="mt-1 text-2xl font-black">0</p><p id="stCntD" class="text-xs text-gray-400"></p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">📈 إيراد الشهر</p><p id="stRevM" class="mt-1 text-2xl font-black">0</p><p id="stCntM" class="text-xs text-gray-400"></p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">✅ ربح اليوم</p><p id="stProfD" class="mt-1 text-2xl font-black">0</p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">🏆 ربح الشهر</p><p id="stProfM" class="mt-1 text-2xl font-black">0</p></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">📦 إجمالي المشتريات</p><p id="stPurch" class="mt-1 text-2xl font-black">0</p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">🏬 قيمة المخزون</p><p id="stStock" class="mt-1 text-2xl font-black">0</p><p id="stStockN" class="text-xs text-gray-400"></p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">🏷️ عدد الأصناف</p><p id="stCount" class="mt-1 text-2xl font-black">0</p></div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">مبيعات آخر 7 أيام</h3>
+        <div id="weekChart" class="flex h-32 items-end gap-2"></div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">أحدث الفواتير</h3>
+        <div id="recentList" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ===== المبيعات ===== -->
+    <section id="v-sales" class="view hidden space-y-6">
+      <h2 class="text-xl font-black"><i class="fa-solid fa-receipt ml-1"></i> المبيعات — فاتورة جديدة</h2>
+      <div class="no-print rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex gap-2">
+          <input id="barcodeInput" dir="ltr" autocomplete="off" placeholder="امسح الباركود أو أدخله ثم Enter"
+            class="ltr flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+          <button id="btnBarcodeAdd" class="rounded-lg bg-amber-500 px-4 py-2 font-bold text-white hover:bg-amber-600"><i class="fa-solid fa-plus"></i></button>
+          <button id="btnCamSales" class="rounded-lg border border-gray-300 px-3 py-2 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800" title="مسح بالكاميرا"><i class="fa-solid fa-camera"></i></button>
+        </div>
+        <div id="camSalesBox" class="hidden mt-2 rounded-xl bg-black p-2">
+          <video id="camSalesVideo" class="h-48 w-full rounded-lg object-cover" muted playsinline></video>
+          <button id="btnCamSalesStop" class="mt-2 w-full rounded-lg bg-red-600 py-2 text-sm font-bold text-white">إيقاف الكاميرا</button>
+        </div>
+        <div class="mt-2 flex gap-2">
+          <input id="manualInput" list="prodList" placeholder="اختيار يدوي: اكتب اسم الصنف ثم Enter"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+          <button id="btnManualAdd" class="whitespace-nowrap rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700">إضافة</button>
+        </div>
+        <datalist id="prodList"></datalist>
+        <p id="salesMsg" class="mt-2 hidden text-sm font-bold"></p>
+      </div>
+
+      <div class="no-print rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-2 font-bold">الأصناف (<span id="salesCount">0</span> / 30)</h3>
+        <div id="salesRows" class="space-y-2"></div>
+        <div class="mt-4 grid gap-2 md:grid-cols-3">
+          <label class="block"><span class="mb-1 block text-sm font-semibold">خصم الفاتورة</span>
+            <input id="saleDiscount" dir="ltr" inputmode="decimal" value="0"
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">ملاحظات</span>
+            <input id="saleNotes" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <div class="rounded-xl bg-amber-50 p-3 text-sm dark:bg-amber-950">
+            <div class="flex justify-between"><span>الإجمالي:</span><b id="saleSub">0</b></div>
+            <div class="flex justify-between"><span>الخصم:</span><b id="saleDisc">0</b></div>
+            <div class="flex justify-between text-lg"><span>الصافي (بسعر الجمهور):</span><b id="saleNet">0</b></div>
+          </div>
+        </div>
+        <button id="btnSaveSale" class="mt-3 w-full rounded-lg bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600">
+          <i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الفاتورة
+        </button>
+      </div>
+
+      <div id="lastSaleBox" class="hidden rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="no-print mb-2 flex gap-2">
+          <button id="btnPreviewSale" class="rounded-lg border px-4 py-2 text-sm">معاينة الفاتورة</button>
+          <button id="btnPrintSale" class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"><i class="fa-solid fa-print ml-1"></i> طباعة</button>
+        </div>
+        <div id="lastSalePreview"></div>
+      </div>
+
+      <div class="no-print rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">سجل المبيعات (<span id="salesHistN">0</span>)</h3>
+        <div id="salesHistory" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ===== المشتريات ===== -->
+    <section id="v-purch" class="view hidden space-y-6">
+      <h2 class="text-xl font-black"><i class="fa-solid fa-box ml-1"></i> المشتريات</h2>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 id="purFormTitle" class="mb-3 font-bold">فاتورة مشتريات جديدة</h3>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="block"><span class="mb-1 block text-sm font-semibold">اسم المورد / الشركة</span>
+            <input id="purSupplier" list="supList" placeholder="مثال: شركة النور"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">ملاحظات</span>
+            <input id="purNotes" placeholder="اختياري"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        </div>
+        <datalist id="supList"></datalist>
+        <div id="purLines" class="mt-4 space-y-3"></div>
+        <datalist id="prodList2"></datalist>
+        <button id="btnAddLine" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+          <i class="fa-solid fa-plus ml-1"></i> إضافة صنف
+        </button>
+        <div class="mt-4 rounded-xl bg-amber-50 p-3 text-sm dark:bg-amber-950">
+          <div class="flex justify-between"><span>المجموع قبل الخصم:</span><b id="purSub">0</b></div>
+          <div class="flex justify-between"><span>إجمالي الخصم:</span><b id="purDiscT">0</b></div>
+          <div class="flex justify-between text-lg"><span>الإجمالي بعد الخصم:</span><b id="purGrand">0</b></div>
+        </div>
+        <p id="purMsg" class="mt-2 hidden text-sm font-bold"></p>
+        <div class="mt-3 flex gap-2">
+          <button id="btnSavePurch" class="flex-1 rounded-lg bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600">حفظ الفاتورة</button>
+          <button id="btnCancelEdit" class="hidden rounded-lg border px-4 py-2.5">إلغاء</button>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">سجل فواتير المشتريات (<span id="purchHistN">0</span>)</h3>
+        <div id="purchHistory" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ===== المخزون ===== -->
+    <section id="v-inv" class="view hidden space-y-6">
+      <h2 class="text-xl font-black"><i class="fa-solid fa-warehouse ml-1"></i> المخزون (<span id="invN">0</span>)</h2>
+      <div id="lowBox" class="hidden rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950"></div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">إضافة / تعديل صنف</h3>
+        <div class="flex gap-2">
+          <input id="invBarcodeScan" dir="ltr" autocomplete="off" placeholder="امسح باركود الصنف لتعبئته"
+            class="ltr flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+          <button id="btnInvScan" class="rounded-lg bg-amber-500 px-4 py-2 font-bold text-white"><i class="fa-solid fa-barcode"></i></button>
+        </div>
+        <div class="mt-3 grid gap-2 md:grid-cols-3">
+          <label class="block"><span class="mb-1 block text-sm font-semibold">اسم المنتج</span><input id="invName" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">الباركود</span><input id="invBarcode" dir="ltr" class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">المورد</span><input id="invSupplier" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">سعر الشراء</span><input id="invBuy" dir="ltr" inputmode="decimal" class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">سعر البيع</span><input id="invSell" dir="ltr" inputmode="decimal" class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">المخزون</span><input id="invStock" dir="ltr" inputmode="numeric" class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        </div>
+        <p id="invMsg" class="mt-2 hidden text-sm font-bold"></p>
+        <button id="btnSaveInv" class="mt-3 w-full rounded-lg bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600">حفظ الصنف</button>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <input id="invSearch" placeholder="🔍 بحث بالاسم أو الباركود أو المورد"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+        <div id="invList" class="mt-3 space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ===== التقارير ===== -->
+    <section id="v-rep" class="view hidden space-y-6">
+      <div class="no-print flex items-center justify-between">
+        <h2 class="text-xl font-black"><i class="fa-solid fa-chart-line ml-1"></i> التقارير — <span class="repCompany">مؤسستي التجارية</span></h2>
+        <button id="btnPrintRep" class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"><i class="fa-solid fa-print ml-1"></i> طباعة التقرير</button>
+      </div>
+      <div class="no-print flex gap-2">
+        <button data-r="today" class="repR rounded-lg px-4 py-1.5 text-sm font-bold">اليوم</button>
+        <button data-r="month" class="repR rounded-lg px-4 py-1.5 text-sm font-bold">الشهر</button>
+        <button data-r="all" class="repR rounded-lg px-4 py-1.5 text-sm font-bold">الكل</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">💰 الإيرادات</p><p id="repRev" class="mt-1 text-2xl font-black">0</p><p id="repCnt" class="text-xs text-gray-400"></p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">✅ الأرباح</p><p id="repProf" class="mt-1 text-2xl font-black">0</p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">📦 المشتريات</p><p id="repPurch" class="mt-1 text-2xl font-black">0</p></div>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"><p class="text-sm text-gray-500">📊 الصافي</p><p id="repNet" class="mt-1 text-2xl font-black">0</p></div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">🏆 الأصناف الأكثر مبيعاً</h3>
+        <div id="repTop" class="space-y-2"></div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 text-sm dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-2 font-bold">ملخص المخزون</h3>
+        <p id="repStock"></p>
+      </div>
+    </section>
+
+    <!-- ===== الإعدادات ===== -->
+    <section id="v-set" class="view hidden space-y-6">
+      <h2 class="text-xl font-black"><i class="fa-solid fa-gear ml-1"></i> الإعدادات</h2>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">🏢 اسم المؤسسة / الشركة</h3>
+        <label class="block"><span class="mb-1 block text-sm font-semibold">يظهر في الواجهة والفواتير والتقارير (حفظ تلقائي)</span>
+          <input id="setCompany" placeholder="اسم شركتك"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        <div class="mt-2 grid gap-2 md:grid-cols-2">
+          <label class="block"><span class="mb-1 block text-sm font-semibold">هاتف المحل 1 (يظهر في الفاتورة)</span>
+            <input id="setPhone1" dir="ltr"
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">هاتف المحل 2 (يظهر في الفاتورة)</span>
+            <input id="setPhone2" dir="ltr"
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">🎨 المظهر والخط واللغة</h3>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div><span class="mb-1 block text-sm font-semibold">الوضع</span>
+            <div class="flex gap-2">
+              <button id="themeLight" class="flex-1 rounded-lg border py-2">☀️ فاتح</button>
+              <button id="themeDark" class="flex-1 rounded-lg border py-2">🌙 ليلي</button>
+            </div></div>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">حجم الخط</span>
+            <select id="setFontSize" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <option value="small">صغير</option><option value="medium">متوسط</option><option value="large">كبير</option>
+            </select></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">نوع الخط</span>
+            <select id="setFontFace" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <option value="cairo">Cairo</option><option value="tajawal">Tajawal</option><option value="system">خط النظام</option>
+            </select></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">اللغة</span>
+            <select id="setLang" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <option value="ar">العربية (أساسية)</option><option value="en">English</option>
+            </select></label>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">🤲 التذكيرات الدينية</h3>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm">تفعيل الإشعارات الخفيفة (صلي على النبي ﷺ …)</span>
+          <button id="dhikrToggle" class="rounded-full px-4 py-1.5 text-sm font-bold">مفعّلة</button>
+        </div>
+        <label class="mt-2 block"><span class="mb-1 block text-sm font-semibold">كل كم دقيقة؟ (1 - 180)</span>
+          <input id="dhikrMin" type="number" min="1" max="180" dir="ltr"
+            class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">☁️ الاتصال بـ Supabase</h3>
+        <div class="grid gap-2">
+          <label class="block"><span class="mb-1 block text-sm font-semibold">Supabase Project URL (مثال: https://xyz.supabase.co)</span>
+            <input id="sbUrl" dir="ltr" placeholder="https://xyz.supabase.co"
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">Supabase Publishable Key (مدمج في الكود تلقائياً)</span>
+            <input id="sbKey" dir="ltr" placeholder="eyJ..."
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+          <label class="block"><span class="mb-1 block text-sm font-semibold">إيميلات مسموح لها (افصل بفاصلة)</span>
+            <input id="allowedEmails" dir="ltr" placeholder="admin@store.com"
+              class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        </div>
+        <button id="btnSaveConn" class="mt-3 w-full rounded-lg bg-gray-900 py-2.5 font-bold text-white dark:bg-gray-700">حفظ بيانات الاتصال</button>
+        <p id="connMsg" class="mt-2 hidden text-sm font-bold"></p>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">💾 النسخ الاحتياطي</h3>
+        <p id="backupInfo" class="mb-3 text-sm text-gray-500"></p>
+        <div class="grid gap-2 md:grid-cols-2">
+          <button id="btnBackupLocal" class="rounded-lg bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600"><i class="fa-solid fa-download ml-1"></i> تنزيل نسخة محلية</button>
+          <button id="btnBackupMail" class="rounded-lg bg-blue-600 py-2.5 font-bold text-white hover:bg-blue-700"><i class="fa-solid fa-envelope ml-1"></i> نسخة عبر إيميل جوجل</button>
+        </div>
+        <label class="mt-3 block"><span class="mb-1 block text-sm font-semibold">استعادة من ملف</span>
+          <input id="restoreFile" type="file" accept="application/json"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>
+        <p id="backupMsg" class="mt-2 hidden text-sm font-bold"></p>
+      </div>
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 class="mb-3 font-bold">📞 الدعم الفني</h3>
+        <div class="flex flex-wrap gap-2">
+          <a href="https://wa.me/201113008004" target="_blank" rel="noopener" class="rounded-lg bg-green-600 px-4 py-2 font-bold text-white hover:bg-green-700"><i class="fa-brands fa-whatsapp ml-1"></i> واتساب: 01113008004</a>
+          <a href="tel:+201113008004" class="rounded-lg border px-4 py-2 font-bold"><i class="fa-solid fa-phone ml-1"></i> اتصال مباشر</a>
+          <a href="https://youtube.com/@mostafawy04?si=Qlc05WchkaOHN3Dz" target="_blank" rel="noopener" class="rounded-lg bg-red-600 px-4 py-2 font-bold text-white"><i class="fa-brands fa-youtube ml-1"></i> قناة اليوتيوب</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- التذييل -->
+  <footer class="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+    <div class="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-5 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400"><span class="footCompany">مؤسستي التجارية</span> — جميع الحقوق محفوظة © <span id="year"></span></p>
+      <div class="flex items-center gap-3">
+        <a href="https://wa.me/201113008004" target="_blank" rel="noopener"
+          class="inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">
+          <i class="fa-brands fa-whatsapp"></i> تواصل مع الدعم واتساب: 01113008004
+        </a>
+        <a href="https://youtube.com/@mostafawy04?si=Qlc05WchkaOHN3Dz" target="_blank" rel="noopener" title="قناة اليوتيوب"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700">
+          <i class="fa-brands fa-youtube"></i>
+        </a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- التنبيهات + منطقة الطباعة -->
+<div id="toasts" class="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2"></div>
+<div id="printArea"></div>
+
+<script>
+/* =====================================================================
+   نظام المبيعات والمشتريات — ملف واحد — Offline-first + Supabase
+   ===================================================================== */
+(function () {
+"use strict";
+
+/* ---------- 1) أدوات آمنة ---------- */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function num(v, fb) {
+  fb = fb == null ? 0 : fb;
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (typeof v === "string") { var n = parseFloat(v.replace(/[^\d.\-]/g, "")); return isFinite(n) ? n : fb; }
+  return fb;
+}
+function uid(p) {
+  try { if (window.crypto && crypto.randomUUID) return p + "_" + crypto.randomUUID(); } catch (e) {}
+  return p + "_" + Date.now().toString(36) + "_" + Math.floor(Math.random() * 1e9).toString(36);
+}
+function nowISO() { return new Date().toISOString(); }
+function fmtMoney(n) {
+  var v = num(n, 0);
+  try { return v.toLocaleString("ar-EG", { maximumFractionDigits: 2 }) + " ج.م"; }
+  catch (e) { return v + " ج.م"; }
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  try {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+  } catch (e) { return "—"; }
+}
+function sameDay(aISO, b) {
+  try {
+    var a = new Date(aISO); b = b || new Date();
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  } catch (e) { return false; }
+}
+function sameMonth(aISO, b) {
+  try {
+    var a = new Date(aISO); b = b || new Date();
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+  } catch (e) { return false; }
+}
+var BLOCKED_MSG = "الحساب غير مفعّل. تواصل مع الدعم لتفعيل حسابك: 01113008004";
+var DHIKR = [
+  "صلي على النبي ﷺ",
+  "لا حول ولا قوة إلا بالله",
+  "لا إله إلا الله وحدَهُ لا شريك له",
+  "استغفر الله العظيم واتوب إليه",
+  "سبحان الله وبحمده، سبحان الله العظيم",
+  "الحمد لله حمداً كثيراً طيباً مباركاً فيه",
+  "اللهم صل وسلم على نبينا محمد",
+  "لا إله إلا أنت سبحانك إني كنت من الظالمين",
+  "سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر",
+  "يا مقلب القلوب ثبت قلبي على دينك"
+];
+function pickDhikr() {
+  try { return DHIKR[Math.floor(Math.random() * DHIKR.length)]; }
+  catch (e) { return DHIKR[0]; }
+}
+
+/* ---------- 2) اللغة ---------- */
+var I18N = {
+  ar: { dashboard: "الرئيسية", sales: "المبيعات", purchases: "المشتريات", inventory: "المخزون", reports: "التقارير", settings: "الإعدادات", logout: "خروج", welcome: "أهلاً بك في" },
+  en: { dashboard: "Dashboard", sales: "Sales", purchases: "Purchases", inventory: "Inventory", reports: "Reports", settings: "Settings", logout: "Logout", welcome: "Welcome to" }
+};
+function T(key) {
+  try {
+    var l = (S.settings.language === "en") ? "en" : "ar";
+    return (I18N[l] && I18N[l][key]) || I18N.ar[key] || key;
+  } catch (e) { return key; }
+}
+function applyLang() {
+  try {
+    var els = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < els.length; i++) { els[i].textContent = T(els[i].getAttribute("data-i18n")); }
+    document.documentElement.lang = S.settings.language === "en" ? "en" : "ar";
+    document.documentElement.dir = S.settings.language === "en" ? "ltr" : "rtl";
+  } catch (e) {}
+}
+
+/* ---------- 3) التخزين المحلي (Offline-first + Auto-save) ---------- */
+var LS = {
+  get: function (k, fb) {
+    try { var v = localStorage.getItem("sp_" + k); return v == null ? fb : JSON.parse(v); }
+    catch (e) { return fb; }
+  },
+  set: function (k, v) { try { localStorage.setItem("sp_" + k, JSON.stringify(v)); } catch (e) {} },
+  del: function (k) { try { localStorage.removeItem("sp_" + k); } catch (e) {} }
+};
+var DEFAULT_SETTINGS = {
+  companyName: "مؤسستي التجارية", darkMode: false, fontSize: "medium", fontFamily: "cairo",
+  language: "ar", dhikrEnabled: true, dhikrIntervalMin: 30,
+  supabaseUrl: "", supabaseKey: "", allowedEmails: "",
+  shopPhone1: "01158869448", shopPhone2: "01013454036"
+};
+var S = { products: [], purchases: [], sales: [], outbox: [], settings: {}, session: null };
+function loadState() {
+  try {
+    S.products = LS.get("products", []) || [];
+    S.purchases = LS.get("purchases", []) || [];
+    S.sales = LS.get("sales", []) || [];
+    S.outbox = LS.get("outbox", []) || [];
+    var st = LS.get("settings", {}) || {};
+    S.settings = Object.assign({}, DEFAULT_SETTINGS, st);
+    S.session = LS.get("session", null);
+    if (!Array.isArray(S.products)) S.products = [];
+    if (!Array.isArray(S.purchases)) S.purchases = [];
+    if (!Array.isArray(S.sales)) S.sales = [];
+    if (!Array.isArray(S.outbox)) S.outbox = [];
+  } catch (e) { S.settings = Object.assign({}, DEFAULT_SETTINGS); }
+}
+function save() {
+  LS.set("products", S.products); LS.set("purchases", S.purchases);
+  LS.set("sales", S.sales); LS.set("outbox", S.outbox);
+  LS.set("settings", S.settings); LS.set("session", S.session);
+}
+var saveT = null;
+function autoSave() { try { if (saveT) clearTimeout(saveT); saveT = setTimeout(save, 400); } catch (e) { save(); } }
+
+/* ---------- 4) Supabase ---------- */
+var sb = null;
+// بيانات الاتصال المدمجة في الكود — تُستخدم تلقائياً ما لم تُدخل قيماً أخرى من الإعدادات
+var EMBEDDED_SUPABASE_URL = "";
+var EMBEDDED_SUPABASE_KEY = "sb_publishable_ljuCipyJZWfCiOo3MFKaKg_HCp5o4SK";
+function effSbUrl() { try { var v = String(S.settings.supabaseUrl || "").trim(); return v || EMBEDDED_SUPABASE_URL; } catch (e) { return EMBEDDED_SUPABASE_URL; } }
+function effSbKey() { try { var v = String(S.settings.supabaseKey || "").trim(); return v || EMBEDDED_SUPABASE_KEY; } catch (e) { return EMBEDDED_SUPABASE_KEY; } }
+function sbInit() {
+  sb = null;
+  try {
+    var u = effSbUrl(), k = effSbKey();
+    if (u.indexOf("http") === 0 && k.length > 10 && window.supabase && window.supabase.createClient) {
+      sb = window.supabase.createClient(u, k);
+    }
+  } catch (e) { sb = null; }
+  return sb;
+}
+function sbOn() { return !!sb; }
+function isOnline() { try { return typeof navigator === "undefined" ? true : navigator.onLine !== false; } catch (e) { return true; } }
+function parseEmails(raw) {
+  try { return String(raw || "").split(/[,،\n]/).map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean); }
+  catch (e) { return []; }
+}
+function queueOp(table, action, payload) {
+  try {
+    if (!sbOn()) return;
+    S.outbox.push({ id: uid("op"), table: table, action: action, payload: payload, createdAt: nowISO() });
+    autoSave();
+  } catch (e) {}
+}
+async function doSync() {
+  if (!sbOn() || !isOnline()) return { pushed: 0 };
+  var pushed = 0;
+  try {
+    var ops = S.outbox.slice();
+    for (var i = 0; i < ops.length; i++) {
+      var op = ops[i];
+      try {
+        var row = Object.assign({}, op.payload, { user_id: (S.session && S.session.id !== "local" && S.session.id !== "demo") ? S.session.id : null });
+        var err = null;
+        if (op.action === "delete") { var r1 = await sb.from(op.table).delete().eq("id", row.id); err = r1.error; }
+        else { var r2 = await sb.from(op.table).upsert(row, { onConflict: "id" }); err = r2.error; }
+        if (!err) { S.outbox = S.outbox.filter(function (x) { return x.id !== op.id; }); pushed++; }
+      } catch (e) {}
+    }
+    // سحب المنتجات الجديدة فقط (دمج آمن)
+    try {
+      var q = sb.from("products").select("*").limit(500);
+      if (S.session && S.session.id && S.session.id !== "local" && S.session.id !== "demo") q = q.eq("user_id", S.session.id);
+      var res = await q;
+      if (!res.error && Array.isArray(res.data)) {
+        res.data.forEach(function (r) {
+          try {
+            var exists = S.products.some(function (p) { return p.id === r.id; });
+            if (!exists && r.id && r.name) {
+              S.products.push({
+                id: String(r.id), name: String(r.name || ""),
+                barcode: r.barcode || undefined,
+                purchasePrice: num(r.purchase_price != null ? r.purchase_price : r.purchasePrice),
+                salePrice: num(r.sale_price != null ? r.sale_price : r.salePrice),
+                stock: num(r.stock), supplier: r.supplier || undefined,
+                createdAt: r.created_at || nowISO(), updatedAt: r.updated_at || nowISO(), synced: true
+              });
+            }
+          } catch (e) {}
+        });
+      }
+    } catch (e) {}
+    save(); renderAll();
+    try { $("syncTxt").textContent = " • آخر مزامنة " + new Date().toLocaleTimeString("ar-EG"); } catch (e) {}
+  } catch (e) {}
+  return { pushed: pushed };
+}
+
+/* ---------- 5) التنبيهات ---------- */
+function toast(msg, kind) {
+  try {
+    var box = $("toasts");
+    var d = document.createElement("div");
+    d.className = "toast-in flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl " +
+      (kind === "dhikr"
+        ? "border-emerald-200 bg-white/95 dark:border-emerald-800 dark:bg-gray-900/95"
+        : "border-gray-200 bg-gray-900 text-white dark:border-gray-700");
+    d.innerHTML = '<span class="text-2xl">' + (kind === "dhikr" ? "🤲" : "ℹ️") + "</span>" +
+      '<p class="text-base font-bold ' + (kind === "dhikr" ? "text-emerald-700 dark:text-emerald-300" : "") + '">' + esc(msg) + "</p>";
+    var x = document.createElement("button");
+    x.textContent = "✕"; x.className = "rounded-full px-2 opacity-60 hover:opacity-100";
+    x.onclick = function () { try { d.remove(); } catch (e) {} };
+    d.appendChild(x); box.appendChild(d);
+    setTimeout(function () { try { d.remove(); } catch (e) {} }, 8000);
+  } catch (e) {}
+}
+function showMsg(id, txt) {
+  try {
+    var el = $(id);
+    if (!txt) { el.classList.add("hidden"); el.textContent = ""; return; }
+    el.textContent = txt; el.classList.remove("hidden");
+  } catch (e) {}
+}
+
+/* ---------- 6) المصادقة ---------- */
+async function isAllowed(email) {
+  var em = String(email || "").trim().toLowerCase();
+  var list = parseEmails(S.settings.allowedEmails);
+  if (list.indexOf(em) >= 0) return { ok: true };
+  if (sb) {
+    try {
+      var r = await sb.from("allowed_users").select("email,is_active").ilike("email", em).limit(1).maybeSingle();
+      if (!r.error && r.data) {
+        if (r.data.is_active === false) return { ok: false };
+        return { ok: true };
+      }
+    } catch (e) {}
+    // وضع الإعداد الأولي: جدول فارغ أو غير موجود + لا قائمة → السماح مرة واحدة
+    if (!list.length) {
+      try {
+        var c = await sb.from("allowed_users").select("email", { count: "exact", head: true });
+        if (c.error || c.count === 0) return { ok: true, setup: true };
+      } catch (e) { return { ok: true, setup: true }; }
+    }
+    return { ok: false };
+  }
+  // وضع محلي: لا قائمة → السماح (إعداد أولي)
+  if (!list.length) return { ok: true, setup: true };
+  return { ok: false };
+}
+function mapAuthErr(e) {
+  try {
+    var m = String((e && e.message) || "");
+    if (/invalid login|invalid.*password|email not confirmed/i.test(m)) return "بيانات الدخول غير صحيحة";
+    if (/network|fetch|failed/i.test(m)) return "تعذر الاتصال — تحقق من الإنترنت";
+    return m || "حدث خطأ — حاول مجدداً";
+  } catch (x) { return "حدث خطأ — حاول مجدداً"; }
+}
+async function doLogin(ev) {
+  if (ev && ev.preventDefault) ev.preventDefault();
+  showMsg("loginMsg", "");
+  var em = "", pw = "";
+  try { em = $("loginEmail").value.trim().toLowerCase(); pw = $("loginPass").value; } catch (e) {}
+  if (!em || !pw) { showMsg("loginMsg", "أدخل البريد الإلكتروني وكلمة المرور"); return; }
+  var btn = $("loginBtn");
+  try { btn.disabled = true; btn.textContent = "جارٍ الدخول…"; } catch (e) {}
+  try {
+    if (sbOn()) {
+      var r = await sb.auth.signInWithPassword({ email: em, password: pw });
+      if (r.error) { showMsg("loginMsg", mapAuthErr(r.error)); return; }
+      var chk = await isAllowed(em);
+      if (!chk.ok) {
+        try { await sb.auth.signOut(); } catch (e) {}
+        showMsg("loginMsg", BLOCKED_MSG);
+        return;
+      }
+      var u = r.data && r.data.user;
+      S.session = { email: (u && u.email) || em, id: (u && u.id) || null };
+      save(); enterApp();
+      if (chk.setup) toast("تم الدخول بوضع الإعداد — أضف الإيميلات المسموحة من الإعدادات");
+      void doSync();
+    } else {
+      var list = parseEmails(S.settings.allowedEmails);
+      if (list.length && list.indexOf(em) < 0) { showMsg("loginMsg", BLOCKED_MSG); return; }
+      S.session = { email: em, id: "local" };
+      save(); enterApp();
+      if (!list.length) toast("وضع محلي: حدّد الإيميلات المسموحة من الإعدادات");
+    }
+  } catch (e) { showMsg("loginMsg", "حدث خطأ — حاول مجدداً"); }
+  finally { try { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket ml-1"></i> دخول'; } catch (e) {} }
+}
+async function doLogout() {
+  try { if (sbOn()) await sb.auth.signOut(); } catch (e) {}
+  S.session = null; save();
+  try { $("appView").classList.add("hidden"); $("loginView").classList.remove("hidden"); } catch (e) {}
+}
+function enterApp() {
+  try {
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+    renderAll();
+    showView("dash");
+  } catch (e) {}
+}
+
+/* ---------- 7) التنقل ---------- */
+function showView(name) {
+  try {
+    var views = document.querySelectorAll(".view");
+    for (var i = 0; i < views.length; i++) views[i].classList.add("hidden");
+    var el = $("v-" + name);
+    if (el) el.classList.remove("hidden");
+    var btns = document.querySelectorAll(".navBtn");
+    for (var j = 0; j < btns.length; j++) {
+      var on = btns[j].getAttribute("data-v") === name;
+      btns[j].className = "navBtn whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold " +
+        (on ? "bg-amber-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700");
+    }
+    if (name === "dash") renderDash();
+    if (name === "rep") renderReports();
+    if (name === "set") renderSettingsInfo();
+  } catch (e) {}
+}
+
+/* ---------- 8) الإعدادات العامة ---------- */
+function applySettings() {
+  try {
+    var st = S.settings;
+    document.documentElement.classList.toggle("dark", !!st.darkMode);
+    var root = document.documentElement;
+    root.classList.remove("fs-small", "fs-large");
+    if (st.fontSize === "small") root.classList.add("fs-small");
+    if (st.fontSize === "large") root.classList.add("fs-large");
+    root.classList.remove("ff-tajawal", "ff-system");
+    if (st.fontFamily === "tajawal") root.classList.add("ff-tajawal");
+    if (st.fontFamily === "system") root.classList.add("ff-system");
+    var cn = st.companyName || "مؤسستي التجارية";
+    $("hdrCompany").textContent = cn;
+    $("dashCompany").textContent = cn;
+    var fcs = document.querySelectorAll(".footCompany");
+    for (var i = 0; i < fcs.length; i++) fcs[i].textContent = cn;
+    var rcs = document.querySelectorAll(".repCompany");
+    for (var j = 0; j < rcs.length; j++) rcs[j].textContent = cn;
+    applyLang();
+    paintThemeBtns();
+  } catch (e) {}
+}
+function paintThemeBtns() {
+  try {
+    var on = "flex-1 rounded-lg border py-2 border-amber-500 bg-amber-50 font-bold dark:bg-amber-950";
+    var off = "flex-1 rounded-lg border py-2";
+    $("themeLight").className = S.settings.darkMode ? off : on;
+    $("themeDark").className = S.settings.darkMode ? on : off;
+    var dt = $("dhikrToggle");
+    dt.textContent = S.settings.dhikrEnabled ? "مفعّلة" : "متوقفة";
+    dt.className = "rounded-full px-4 py-1.5 text-sm font-bold " +
+      (S.settings.dhikrEnabled ? "bg-amber-500 text-white" : "bg-gray-200 dark:bg-gray-700");
+  } catch (e) {}
+}
+
+/* ---------- 9) اللوحة الرئيسية ---------- */
+function renderDash() {
+  try {
+    var sales = S.sales, purch = S.purchases, prods = S.products;
+    var tS = sales.filter(function (s) { return sameDay(s.date); });
+    var mS = sales.filter(function (s) { return sameMonth(s.date); });
+    var sum = function (a, f) { return a.reduce(function (x, s) { return x + num(s[f]); }, 0); };
+    $("stRevD").textContent = fmtMoney(sum(tS, "netTotal"));
+    $("stRevM").textContent = fmtMoney(sum(mS, "netTotal"));
+    $("stProfD").textContent = fmtMoney(sum(tS, "profitTotal"));
+    $("stProfM").textContent = fmtMoney(sum(mS, "profitTotal"));
+    $("stCntD").textContent = tS.length + " فاتورة";
+    $("stCntM").textContent = mS.length + " فاتورة";
+    $("stPurch").textContent = fmtMoney(sum(purch, "grandTotal"));
+    var sv = prods.reduce(function (a, p) { return a + num(p.stock) * num(p.purchasePrice); }, 0);
+    $("stStock").textContent = fmtMoney(sv);
+    $("stStockN").textContent = prods.length + " صنف";
+    $("stCount").textContent = String(prods.length);
+    // آخر 7 أيام
+    var days = [], max = 1, i;
+    for (i = 6; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var tot = sales.filter(function (s) { return sameDay(s.date, d); }).reduce(function (a, s) { return a + num(s.netTotal); }, 0);
+      if (tot > max) max = tot;
+      days.push({ label: d.toLocaleDateString("ar-EG", { weekday: "short" }), total: tot });
+    }
+    var html = "";
+    for (i = 0; i < days.length; i++) {
+      var h = Math.max(4, (days[i].total / max) * 100);
+      html += '<div class="flex flex-1 flex-col items-center gap-1"><div class="w-full rounded-t-lg bg-amber-500" style="height:' +
+        h + 'px" title="' + esc(fmtMoney(days[i].total)) + '"></div><span class="text-[11px] text-gray-500">' +
+        esc(days[i].label) + "</span></div>";
+    }
+    $("weekChart").innerHTML = html;
+    // الأحدث
+    var last = sales.slice().sort(function (a, b) { return (b.date > a.date) ? 1 : -1; }).slice(0, 8);
+    if (!last.length) {
+      $("recentList").innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">لا توجد مبيعات بعد — ابدأ من قسم المبيعات 🧾</div>';
+    } else {
+      html = "";
+      for (i = 0; i < last.length; i++) {
+        var s = last[i], n = (s.items || []).length;
+        html += '<div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"><div><p class="font-bold">' +
+          esc(fmtMoney(s.netTotal)) + '</p><p class="text-xs text-gray-500">' + esc(fmtDate(s.date)) + " • " + n +
+          " أصناف • ربح " + esc(fmtMoney(s.profitTotal)) + '</p></div><span class="text-xs text-gray-400">#' +
+          esc(String(s.id).slice(-6)) + "</span></div>";
+      }
+      $("recentList").innerHTML = html;
+    }
+  } catch (e) {}
+}
+
+/* ---------- 10) المشتريات ---------- */
+var purDraft = { lines: [], editingId: null };
+function blankPurchLine() { return { name: "", qty: "1", price: "", discount: "0", salePrice: "", barcode: "" }; }
+function purchTotals() {
+  var sub = 0, disc = 0, i;
+  for (i = 0; i < purDraft.lines.length; i++) {
+    var l = purDraft.lines[i], q = Math.max(0, num(l.qty)), p = Math.max(0, num(l.price));
+    var d = Math.min(Math.max(0, num(l.discount)), q * p);
+    sub += q * p; disc += d;
+  }
+  return { sub: sub, disc: disc, grand: Math.max(0, sub - disc) };
+}
+function refreshPurchTotals() {
+  try {
+    // إجمالي كل سطر
+    for (var i = 0; i < purDraft.lines.length; i++) {
+      var el = $("plt_" + i);
+      if (el) {
+        var l = purDraft.lines[i], q = Math.max(0, num(l.qty)), p = Math.max(0, num(l.price));
+        el.textContent = "الإجمالي بعد الخصم: " + fmtMoney(Math.max(0, q * p - Math.min(Math.max(0, num(l.discount)), q * p)));
+      }
+    }
+    var t = purchTotals();
+    $("purSub").textContent = fmtMoney(t.sub);
+    $("purDiscT").textContent = fmtMoney(t.disc);
+    $("purGrand").textContent = fmtMoney(t.grand);
+  } catch (e) {}
+}
+function renderPurchLines() {
+  try {
+    var box = $("purLines"), html = "", i;
+    for (i = 0; i < purDraft.lines.length; i++) {
+      var l = purDraft.lines[i];
+      html += '<div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-800"><div class="grid gap-2 md:grid-cols-6">' +
+        fld(i, "name", "المنتج", l.name, "", "prodList2") +
+        fld(i, "qty", "الكمية", l.qty, "ltr") +
+        fld(i, "price", "سعر الشراء", l.price, "ltr") +
+        fld(i, "discount", "الخصم", l.discount, "ltr") +
+        fld(i, "salePrice", "سعر البيع للجمهور", l.salePrice, "ltr") +
+        fld(i, "barcode", "باركود (اختياري)", l.barcode, "ltr") +
+        '</div><div class="mt-2 flex items-center justify-between text-sm"><span id="plt_' + i +
+        '" class="font-bold text-amber-700 dark:text-amber-300"></span>' +
+        '<button onclick="PurchDelLine(' + i + ')" class="rounded-lg px-2 py-1 text-red-600 hover:bg-red-50">🗑 حذف السطر</button></div></div>';
+    }
+    box.innerHTML = html;
+    refreshPurchTotals();
+    refreshDatalists();
+  } catch (e) {}
+  function fld(i, f, label, val, dir, list) {
+    return '<label class="block"><span class="mb-1 block text-sm font-semibold">' + esc(label) + "</span>" +
+      '<input value="' + esc(val) + '" oninput="PurchUpd(' + i + ",'" + f + '\',this.value)" ' +
+      (list ? 'list="' + list + '" ' : "") +
+      'class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800' +
+      (dir ? " ltr" : "") + '"' + (dir ? ' dir="ltr"' : "") + "></label>";
+  }
+}
+window.PurchUpd = function (i, f, v) {
+  try {
+    if (!purDraft.lines[i]) return;
+    purDraft.lines[i][f] = v;
+    if (f === "price" && !(purDraft.lines[i].salePrice || "").trim()) {
+      var pr = num(v);
+      if (pr > 0) {
+        purDraft.lines[i].salePrice = String(Math.round(pr * 1.2 * 100) / 100);
+        renderPurchLines(); return;
+      }
+    }
+    refreshPurchTotals();
+  } catch (e) {}
+};
+window.PurchDelLine = function (i) {
+  try {
+    purDraft.lines.splice(i, 1);
+    if (!purDraft.lines.length) purDraft.lines.push(blankPurchLine());
+    renderPurchLines();
+  } catch (e) {}
+};
+function resetPurchForm() {
+  purDraft = { lines: [blankPurchLine()], editingId: null };
+  try {
+    $("purSupplier").value = ""; $("purNotes").value = "";
+    $("purFormTitle").textContent = "فاتورة مشتريات جديدة";
+    $("btnSavePurch").textContent = "حفظ الفاتورة";
+    $("btnCancelEdit").classList.add("hidden");
+  } catch (e) {}
+  renderPurchLines(); showMsg("purMsg", "");
+}
+async function savePurchase() {
+  showMsg("purMsg", "");
+  var sup = "";
+  try { sup = $("purSupplier").value.trim(); } catch (e) {}
+  if (!sup) { showMsg("purMsg", "أدخل اسم المورد أو الشركة"); return; }
+  var t = purchTotals();
+  var items = [], i;
+  for (i = 0; i < purDraft.lines.length; i++) {
+    var l = purDraft.lines[i];
+    if (!(l.name || "").trim()) continue;
+    var q = Math.max(0, num(l.qty)), p = Math.max(0, num(l.price));
+    if (q <= 0) continue;
+    var d = Math.min(Math.max(0, num(l.discount)), q * p);
+    items.push({
+      id: uid("pli"), productName: l.name.trim(), barcode: (l.barcode || "").trim() || undefined,
+      qty: q, purchasePrice: p, discount: d, salePrice: num(l.salePrice || p),
+      total: Math.max(0, q * p - d)
+    });
+  }
+  if (!items.length) { showMsg("purMsg", "أضف صنفاً واحداً على الأقل بكمية وسعر صحيحين"); return; }
+  var notes = "";
+  try { notes = $("purNotes").value.trim(); } catch (e) {}
+  var rec = {
+    id: purDraft.editingId || uid("pur"), supplier: sup, items: items,
+    subtotal: t.sub, discountTotal: t.disc, grandTotal: t.grand,
+    date: nowISO(), notes: notes || undefined, synced: false
+  };
+  try {
+    if (purDraft.editingId) {
+      S.purchases = S.purchases.filter(function (x) { return x.id !== rec.id; });
+      S.purchases.push(rec);
+    } else { S.purchases.push(rec); }
+    // تحديث المخزون تلقائياً
+    for (i = 0; i < items.length; i++) {
+      var it = items[i], m = null, j;
+      for (j = 0; j < S.products.length; j++) {
+        var pp = S.products[j];
+        if (pp.name === it.productName || (it.barcode && pp.barcode === it.barcode)) { m = pp; break; }
+      }
+      if (m) {
+        m.stock = num(m.stock) + it.qty; m.purchasePrice = it.purchasePrice;
+        m.salePrice = it.salePrice; m.updatedAt = nowISO(); m.synced = false;
+        queueOp("products", "upsert", toCloudProduct(m));
+      } else {
+        var np = {
+          id: uid("prd"), name: it.productName, barcode: it.barcode,
+          purchasePrice: it.purchasePrice, salePrice: it.salePrice, stock: it.qty,
+          supplier: sup, createdAt: nowISO(), updatedAt: nowISO(), synced: false
+        };
+        S.products.push(np);
+        queueOp("products", "upsert", toCloudProduct(np));
+      }
+    }
+    queueOp("purchases", "upsert", toCloudPurchase(rec));
+    save(); renderAll(); renderPurchLines();
+    showMsg("purMsg", purDraft.editingId ? "تم تعديل الفاتورة بنجاح ✅" : "تم حفظ فاتورة المشتريات ✅");
+    var wasEdit = !!purDraft.editingId;
+    setTimeout(function () { if (!wasEdit) resetPurchForm(); else { resetPurchForm(); } }, 700);
+    void doSync();
+  } catch (e) { showMsg("purMsg", "تعذر الحفظ — حاول مجدداً"); }
+}
+function toCloudProduct(p) {
+  return { id: p.id, name: p.name, barcode: p.barcode || null, purchase_price: p.purchasePrice, sale_price: p.salePrice, stock: p.stock, supplier: p.supplier || null, created_at: p.createdAt, updated_at: p.updatedAt };
+}
+function toCloudPurchase(p) {
+  return { id: p.id, supplier: p.supplier, items: p.items, subtotal: p.subtotal, discount_total: p.discountTotal, grand_total: p.grandTotal, date: p.date, notes: p.notes || null };
+}
+function toCloudSale(s) {
+  return { id: s.id, items: s.items, subtotal: s.subtotal, discount: s.discount, net_total: s.netTotal, profit_total: s.profitTotal, date: s.date, notes: s.notes || null };
+}
+function renderPurchHistory() {
+  try {
+    var arr = S.purchases.slice().sort(function (a, b) { return (b.date > a.date) ? 1 : -1; });
+    $("purchHistN").textContent = String(arr.length);
+    if (!arr.length) { $("purchHistory").innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">لا توجد فواتير بعد</div>'; return; }
+    var html = "", i;
+    for (i = 0; i < arr.length; i++) {
+      var p = arr[i];
+      html += '<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"><div><p class="font-bold">' +
+        esc(p.supplier) + " — " + esc(fmtMoney(p.grandTotal)) + '</p><p class="text-xs text-gray-500">' +
+        esc(fmtDate(p.date)) + " • " + (p.items || []).length + " أصناف</p></div>" +
+        '<div class="flex gap-2"><button onclick="PurchEdit(\'' + esc(p.id) + '\')" class="rounded-lg border px-3 py-1 text-sm">تعديل</button>' +
+        '<button onclick="PurchDel(\'' + esc(p.id) + '\')" class="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">حذف</button></div></div>';
+    }
+    $("purchHistory").innerHTML = html;
+  } catch (e) {}
+}
+window.PurchEdit = function (id) {
+  try {
+    var p = null, i;
+    for (i = 0; i < S.purchases.length; i++) if (S.purchases[i].id === id) p = S.purchases[i];
+    if (!p) return;
+    purDraft.editingId = p.id;
+    $("purSupplier").value = p.supplier || ""; $("purNotes").value = p.notes || "";
+    purDraft.lines = (p.items || []).map(function (it) {
+      return { name: it.productName || "", qty: String(it.qty), price: String(it.purchasePrice), discount: String(it.discount), salePrice: String(it.salePrice), barcode: it.barcode || "" };
+    });
+    if (!purDraft.lines.length) purDraft.lines.push(blankPurchLine());
+    $("purFormTitle").textContent = "تعديل فاتورة مشتريات";
+    $("btnSavePurch").textContent = "حفظ التعديل";
+    $("btnCancelEdit").classList.remove("hidden");
+    renderPurchLines();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {}
+};
+window.PurchDel = function (id) {
+  try {
+    if (!confirm("حذف هذه الفاتورة؟")) return;
+    S.purchases = S.purchases.filter(function (x) { return x.id !== id; });
+    queueOp("purchases", "delete", { id: id });
+    save(); renderAll();
+  } catch (e) {}
+};
+
+/* ---------- 11) المبيعات ---------- */
+var saleRows = [];
+var lastSale = null;
+function findByBarcode(code) {
+  code = String(code || "").trim();
+  if (!code) return undefined;
+  for (var i = 0; i < S.products.length; i++) {
+    if (String(S.products[i].barcode || "").trim() === code) return S.products[i];
+  }
+  return undefined;
+}
+function saleAddProduct(name, salePrice, purchasePrice, productId, barcode, qty) {
+  qty = qty || 1;
+  if (saleRows.length >= 30) { showMsg("salesMsg", "الحد الأقصى 30 صنفاً في الفاتورة"); return; }
+  var i, ex = null;
+  for (i = 0; i < saleRows.length; i++) {
+    var r = saleRows[i];
+    if ((productId && r.productId === productId) || (barcode && r.barcode === barcode && barcode !== "") || (r.name === name && !productId)) { ex = r; break; }
+  }
+  if (ex) { ex.qty = String(num(ex.qty) + qty); }
+  else saleRows.push({ key: uid("row"), productId: productId, name: name, barcode: barcode || "", qty: String(qty), salePrice: String(salePrice), purchasePrice: purchasePrice });
+  showMsg("salesMsg", "");
+  renderSaleRows();
+}
+function onBarcode(code) {
+  code = String(code || "").trim();
+  if (!code) return;
+  var p = findByBarcode(code);
+  if (p) saleAddProduct(p.name, p.salePrice, p.purchasePrice, p.id, p.barcode || code);
+  else showMsg("salesMsg", "لا يوجد صنف بالباركود " + code + " — أضفه يدوياً أو من المشتريات");
+}
+function saleCalc() {
+  var items = [], sub = 0, prof = 0, i;
+  for (i = 0; i < saleRows.length; i++) {
+    var r = saleRows[i];
+    var q = Math.max(0, Math.floor(num(r.qty))), sp = Math.max(0, num(r.salePrice)), pp = Math.max(0, num(r.purchasePrice));
+    var tot = q * sp;
+    sub += tot; prof += (sp - pp) * q;
+    items.push({ qty: q, sp: sp, pp: pp, total: tot });
+  }
+  var disc = 0;
+  try { disc = Math.min(Math.max(0, num($("saleDiscount").value)), sub); } catch (e) {}
+  return { items: items, sub: sub, disc: disc, net: Math.max(0, sub - disc), profit: prof };
+}
+function renderSaleRows() {
+  try {
+    var box = $("salesRows");
+    $("salesCount").textContent = String(saleRows.length);
+    if (!saleRows.length) {
+      box.innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">امسح باركود أو أضف صنفاً يدوياً</div>';
+    } else {
+      var html = "", i;
+      for (i = 0; i < saleRows.length; i++) {
+        var r = saleRows[i];
+        html += '<div class="grid gap-2 rounded-xl bg-gray-50 p-2 dark:bg-gray-800 md:grid-cols-5">' +
+          '<div class="md:col-span-2"><p class="font-bold">' + esc(r.name) + "</p>" +
+          (r.barcode ? '<p class="text-xs text-gray-500 ltr" dir="ltr">' + esc(r.barcode) + "</p>" : "") + "</div>" +
+          '<label class="block"><span class="mb-1 block text-sm font-semibold">الكمية</span>' +
+          '<input value="' + esc(r.qty) + '" oninput="SaleUpd(\'' + r.key + "','qty',this.value)\" dir=\"ltr\" inputmode=\"numeric\" " +
+          'class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>' +
+          '<label class="block"><span class="mb-1 block text-sm font-semibold">سعر الجمهور</span>' +
+          '<input value="' + esc(r.salePrice) + '" oninput="SaleUpd(\'' + r.key + "','salePrice',this.value)\" dir=\"ltr\" inputmode=\"decimal\" " +
+          'class="ltr w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"></label>' +
+          '<div class="flex items-end justify-between gap-2"><p class="text-sm font-bold" id="srt_' + r.key + '"></p>' +
+          '<button onclick="SaleDel(\'' + r.key + '\')" class="text-red-600">🗑</button></div></div>';
+      }
+      box.innerHTML = html;
+    }
+    refreshSaleTotals();
+    refreshDatalists();
+  } catch (e) {}
+}
+window.SaleUpd = function (key, f, v) {
+  try {
+    for (var i = 0; i < saleRows.length; i++) if (saleRows[i].key === key) saleRows[i][f] = v;
+    refreshSaleTotals();
+  } catch (e) {}
+};
+window.SaleDel = function (key) {
+  try { saleRows = saleRows.filter(function (x) { return x.key !== key; }); renderSaleRows(); } catch (e) {}
+};
+function refreshSaleTotals() {
+  try {
+    var c = saleCalc(), i;
+    for (i = 0; i < saleRows.length; i++) {
+      var el = $("srt_" + saleRows[i].key);
+      if (el) el.textContent = fmtMoney(c.items[i] ? c.items[i].total : 0);
+    }
+    $("saleSub").textContent = fmtMoney(c.sub);
+    $("saleDisc").textContent = fmtMoney(c.disc);
+    $("saleNet").textContent = fmtMoney(c.net);
+  } catch (e) {}
+}
+async function saveSale() {
+  showMsg("salesMsg", "");
+  var c = saleCalc();
+  if (!saleRows.length) { showMsg("salesMsg", "أضف صنفاً واحداً على الأقل"); return; }
+  var bad = false, i;
+  for (i = 0; i < saleRows.length; i++) {
+    if (!saleRows[i].name.trim() || num(saleRows[i].qty) <= 0) bad = true;
+  }
+  if (bad) { showMsg("salesMsg", "راجع الأصناف: الاسم والكمية مطلوبان"); return; }
+  var notes = "";
+  try { notes = $("saleNotes").value.trim(); } catch (e) {}
+  var sale = {
+    id: uid("sal"),
+    items: saleRows.map(function (r, idx) {
+      return {
+        id: uid("sli"), productId: r.productId, name: r.name.trim(), barcode: r.barcode || undefined,
+        qty: c.items[idx].qty, salePrice: c.items[idx].sp, purchasePrice: c.items[idx].pp,
+        total: c.items[idx].total, profit: (c.items[idx].sp - c.items[idx].pp) * c.items[idx].qty
+      };
+    }),
+    subtotal: c.sub, discount: c.disc, netTotal: c.net, profitTotal: c.profit,
+    date: nowISO(), notes: notes || undefined, synced: false
+  };
+  try {
+    S.sales.push(sale);
+    // خصم المخزون
+    for (i = 0; i < sale.items.length; i++) {
+      var it = sale.items[i], j;
+      for (j = 0; j < S.products.length; j++) {
+        var p = S.products[j];
+        if ((it.productId && p.id === it.productId) || (it.barcode && p.barcode === it.barcode) || p.name === it.name) {
+          p.stock = Math.max(0, num(p.stock) - it.qty);
+          p.updatedAt = nowISO(); p.synced = false;
+          queueOp("products", "upsert", toCloudProduct(p));
+          break;
+        }
+      }
+    }
+    queueOp("sales", "upsert", toCloudSale(sale));
+    save();
+    lastSale = sale;
+    saleRows = [];
+    try { $("saleDiscount").value = "0"; $("saleNotes").value = ""; } catch (e) {}
+    renderAll();
+    showMsg("salesMsg", "تم حفظ فاتورة البيع ✅ — يمكنك طباعتها من الأسفل");
+    $("lastSaleBox").classList.remove("hidden");
+    $("lastSalePreview").innerHTML = invoiceHTML(sale);
+    void doSync();
+  } catch (e) { showMsg("salesMsg", "تعذر الحفظ — حاول مجدداً"); }
+}
+function invoiceHTML(sale) {
+  try {
+    var cn = S.settings.companyName || "مؤسستي التجارية";
+    var rows = "", i, items = sale.items || [];
+    for (i = 0; i < items.length; i++) {
+      var it = items[i];
+      rows += "<tr><td style='text-align:right;padding:4px'>" + esc(it.name) + "</td><td>" + it.qty +
+        "</td><td>" + it.salePrice + "</td><td style='text-align:left'>" + it.total + "</td></tr>";
+    }
+    return '<div style="max-width:80mm;margin:0 auto;border:1px dashed #999;padding:12px;text-align:center;font-family:monospace;font-size:14px">' +
+      "<h2 style='font-weight:900;font-size:18px'>" + esc(cn) + "</h2>" +
+      "<p style='font-size:12px'>💡 أدوات كهربائية • نجف • أباليك</p>" +
+      "<p style='font-size:13px;font-weight:bold' dir='ltr'>" + esc(S.settings.shopPhone1 || "") + " • " + esc(S.settings.shopPhone2 || "") + "</p>" +
+      "<p style='font-size:12px'>فاتورة بيع #" + esc(String(sale.id).slice(-6)) + "</p>" +
+      "<p style='font-size:12px'>" + esc(fmtDate(sale.date)) + "</p><hr style='border-top:1px dashed #999;margin:8px 0'>" +
+      "<table style='width:100%;font-size:12px'><thead><tr><th style='text-align:right'>الصنف</th><th>الكمية</th><th>السعر</th><th style='text-align:left'>الإجمالي</th></tr></thead><tbody>" +
+      rows + "</tbody></table>" +
+      "<div style='margin-top:8px;font-size:12px'>" +
+      "<div style='display:flex;justify-content:space-between'><span>الإجمالي:</span><span>" + esc(fmtMoney(sale.subtotal)) + "</span></div>" +
+      (sale.discount ? "<div style='display:flex;justify-content:space-between'><span>الخصم:</span><span>" + esc(fmtMoney(sale.discount)) + "</span></div>" : "") +
+      "<div style='display:flex;justify-content:space-between;font-weight:900;font-size:16px'><span>الصافي:</span><span>" + esc(fmtMoney(sale.netTotal)) + "</span></div></div>" +
+      "<hr style='border-top:1px dashed #999;margin:8px 0'><p style='font-size:12px'>شكراً لتعاملكم معنا 🌹</p>" +
+      "<p style='font-size:11px'>صلي على النبي ﷺ</p></div>";
+  } catch (e) { return ""; }
+}
+function doPrint(html) {
+  try {
+    $("printArea").innerHTML = html;
+    document.body.classList.add("printing");
+    window.print();
+    setTimeout(function () { try { document.body.classList.remove("printing"); } catch (e) {} }, 500);
+  } catch (e) {}
+}
+function renderSalesHistory() {
+  try {
+    var arr = S.sales.slice().sort(function (a, b) { return (b.date > a.date) ? 1 : -1; });
+    $("salesHistN").textContent = String(arr.length);
+    if (!arr.length) { $("salesHistory").innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">لا توجد مبيعات بعد</div>'; return; }
+    var html = "", i, n = Math.min(20, arr.length);
+    for (i = 0; i < n; i++) {
+      var s = arr[i];
+      html += '<div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"><div><p class="font-bold">' +
+        esc(fmtMoney(s.netTotal)) + '</p><p class="text-xs text-gray-500">' + esc(fmtDate(s.date)) + " • " +
+        (s.items || []).length + " أصناف</p></div>" +
+        '<button onclick="SaleHistDel(\'' + esc(s.id) + '\')" class="text-sm text-red-600">حذف</button></div>';
+    }
+    $("salesHistory").innerHTML = html;
+  } catch (e) {}
+}
+window.SaleHistDel = function (id) {
+  try {
+    if (!confirm("حذف الفاتورة؟")) return;
+    S.sales = S.sales.filter(function (x) { return x.id !== id; });
+    queueOp("sales", "delete", { id: id });
+    save(); renderAll();
+  } catch (e) {}
+};
+
+/* ---------- 12) المخزون ---------- */
+var editingProductId = null;
+function renderInv() {
+  try {
+    $("invN").textContent = String(S.products.length);
+    var low = S.products.filter(function (p) { return num(p.stock) <= 3; });
+    if (low.length) {
+      $("lowBox").classList.remove("hidden");
+      var names = low.slice(0, 5).map(function (p) { return p.name; }).join("، ");
+      $("lowBox").textContent = "⚠️ أصناف على وشك النفاد (" + low.length + "): " + names;
+    } else { $("lowBox").classList.add("hidden"); }
+    var q = "";
+    try { q = $("invSearch").value.trim(); } catch (e) {}
+    var arr = S.products.filter(function (p) {
+      if (!q) return true;
+      return (p.name || "").indexOf(q) >= 0 || String(p.barcode || "").indexOf(q) >= 0 || String(p.supplier || "").indexOf(q) >= 0;
+    }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name), "ar"); });
+    if (!arr.length) { $("invList").innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">لا توجد أصناف مطابقة</div>'; return; }
+    var html = "", i;
+    for (i = 0; i < arr.length; i++) {
+      var p = arr[i];
+      html += '<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"><div><p class="font-bold">' +
+        esc(p.name) + '</p><p class="text-xs text-gray-500 ltr" dir="ltr">' + esc(p.barcode || "") + " • شراء " +
+        esc(fmtMoney(p.purchasePrice)) + " • بيع " + esc(fmtMoney(p.salePrice)) + " • مخزون " + num(p.stock) +
+        '</p></div><div class="flex gap-2"><button onclick="InvEdit(\'' + esc(p.id) + '\')" class="rounded-lg border px-3 py-1 text-sm">تعديل</button>' +
+        '<button onclick="InvDel(\'' + esc(p.id) + '\')" class="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">حذف</button></div></div>';
+    }
+    $("invList").innerHTML = html;
+  } catch (e) {}
+}
+window.InvEdit = function (id) {
+  try {
+    var p = null, i;
+    for (i = 0; i < S.products.length; i++) if (S.products[i].id === id) p = S.products[i];
+    if (!p) return;
+    editingProductId = id;
+    $("invName").value = p.name || ""; $("invBarcode").value = p.barcode || "";
+    $("invBuy").value = String(p.purchasePrice); $("invSell").value = String(p.salePrice);
+    $("invStock").value = String(p.stock); $("invSupplier").value = p.supplier || "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {}
+};
+window.InvDel = function (id) {
+  try {
+    var p = null;
+    for (var i = 0; i < S.products.length; i++) if (S.products[i].id === id) p = S.products[i];
+    if (!p) return;
+    if (!confirm("حذف " + p.name + "؟")) return;
+    S.products = S.products.filter(function (x) { return x.id !== id; });
+    queueOp("products", "delete", { id: id });
+    save(); renderAll();
+  } catch (e) {}
+};
+async function saveInvProduct() {
+  showMsg("invMsg", "");
+  var name = "";
+  try { name = $("invName").value.trim(); } catch (e) {}
+  if (!name) { showMsg("invMsg", "أدخل اسم المنتج"); return; }
+  try {
+    var rec = {
+      id: editingProductId || uid("prd"), name: name,
+      barcode: $("invBarcode").value.trim() || undefined,
+      purchasePrice: Math.max(0, num($("invBuy").value)),
+      salePrice: Math.max(0, num($("invSell").value)),
+      stock: Math.max(0, Math.floor(num($("invStock").value))),
+      supplier: $("invSupplier").value.trim() || undefined,
+      createdAt: nowISO(), updatedAt: nowISO(), synced: false
+    };
+    var old = null, i;
+    for (i = 0; i < S.products.length; i++) if (S.products[i].id === rec.id) old = S.products[i];
+    if (old) rec.createdAt = old.createdAt;
+    S.products = S.products.filter(function (x) { return x.id !== rec.id; });
+    S.products.push(rec);
+    queueOp("products", "upsert", toCloudProduct(rec));
+    save(); renderAll();
+    editingProductId = null;
+    $("invName").value = ""; $("invBarcode").value = ""; $("invBuy").value = "";
+    $("invSell").value = ""; $("invStock").value = ""; $("invSupplier").value = "";
+    showMsg("invMsg", "تم حفظ الصنف ✅");
+    void doSync();
+  } catch (e) { showMsg("invMsg", "تعذر الحفظ"); }
+}
+
+/* ---------- 13) التقارير ---------- */
+var repRange = "month";
+function repFiltered() {
+  var now = new Date();
+  var fs = S.sales.filter(function (s) {
+    if (repRange === "all") return true;
+    try {
+      var d = new Date(s.date);
+      if (repRange === "today") return d.toDateString() === now.toDateString();
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    } catch (e) { return false; }
+  });
+  var fp = S.purchases.filter(function (p) {
+    if (repRange === "all") return true;
+    try {
+      var d = new Date(p.date);
+      if (repRange === "today") return d.toDateString() === now.toDateString();
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    } catch (e) { return false; }
+  });
+  return { fs: fs, fp: fp };
+}
+function renderReports() {
+  try {
+    var btns = document.querySelectorAll(".repR");
+    for (var b = 0; b < btns.length; b++) {
+      var on = btns[b].getAttribute("data-r") === repRange;
+      btns[b].className = "repR rounded-lg px-4 py-1.5 text-sm font-bold " + (on ? "bg-amber-500 text-white" : "bg-gray-100 dark:bg-gray-800");
+    }
+    var f = repFiltered();
+    var sum = function (a, k) { return a.reduce(function (x, s) { return x + num(s[k]); }, 0); };
+    var rev = sum(f.fs, "netTotal"), prof = sum(f.fs, "profitTotal"), pur = sum(f.fp, "grandTotal");
+    $("repRev").textContent = fmtMoney(rev);
+    $("repProf").textContent = fmtMoney(prof);
+    $("repPurch").textContent = fmtMoney(pur);
+    $("repNet").textContent = fmtMoney(rev - pur);
+    $("repCnt").textContent = f.fs.length + " فاتورة";
+    var map = {}, i, j;
+    for (i = 0; i < f.fs.length; i++) {
+      var items = f.fs[i].items || [];
+      for (j = 0; j < items.length; j++) {
+        var it = items[j];
+        if (!map[it.name]) map[it.name] = { name: it.name, qty: 0, total: 0 };
+        map[it.name].qty += num(it.qty); map[it.name].total += num(it.total);
+      }
+    }
+    var top = Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return b.qty - a.qty; }).slice(0, 10);
+    if (!top.length) { $("repTop").innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">لا توجد بيانات</div>'; }
+    else {
+      var html = "";
+      for (i = 0; i < top.length; i++) {
+        html += '<div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"><p class="font-bold">#' +
+          (i + 1) + " " + esc(top[i].name) + '</p><p class="text-sm text-gray-500">كمية ' + top[i].qty + " • " + esc(fmtMoney(top[i].total)) + "</p></div>";
+      }
+      $("repTop").innerHTML = html;
+    }
+    var sv = S.products.reduce(function (a, p) { return a + num(p.stock) * num(p.purchasePrice); }, 0);
+    $("repStock").textContent = "عدد الأصناف: " + S.products.length + " • قيمة المخزون بسعر الشراء: " + fmtMoney(sv);
+  } catch (e) {}
+}
+
+/* ---------- 14) النسخ الاحتياطي ---------- */
+function buildBackup() {
+  return {
+    version: 1, exportedAt: nowISO(), exportedBy: (S.session && S.session.email) || "",
+    settings: S.settings, products: S.products, purchases: S.purchases, sales: S.sales
+  };
+}
+function downloadBackup() {
+  showMsg("backupMsg", "");
+  try {
+    var payload = buildBackup();
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "backup-" + String(payload.exportedAt).slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { try { URL.revokeObjectURL(url); a.remove(); } catch (e) {} }, 500);
+    showMsg("backupMsg", "تم تنزيل النسخة الاحتياطية على جهازك ✅");
+  } catch (e) { showMsg("backupMsg", "تعذر إنشاء النسخة"); }
+}
+async function emailBackup() {
+  showMsg("backupMsg", "");
+  try {
+    var payload = buildBackup();
+    var json = JSON.stringify(payload);
+    try { if (navigator.clipboard) await navigator.clipboard.writeText(json); } catch (e) {}
+    var to = (S.session && S.session.email) || "";
+    var subject = encodeURIComponent("نسخة احتياطية - " + String(payload.exportedAt).slice(0, 10));
+    var body = encodeURIComponent("السلام عليكم،\n\nهذه نسخة احتياطية من نظام المبيعات بتاريخ " + payload.exportedAt +
+      ".\nعدد المنتجات: " + payload.products.length + "\nعدد فواتير المشتريات: " + payload.purchases.length +
+      "\nعدد فواتير المبيعات: " + payload.sales.length +
+      "\n\nملاحظة: تم نسخ ملف JSON الكامل إلى الحافظة — الصقه في مسودة الإيميل أو أرفق الملف المنزّل من زر التنزيل.\n");
+    window.open("https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(to) + "&su=" + subject + "&body=" + body, "_blank", "noopener");
+    showMsg("backupMsg", "تم فتح Gmail — والصق البيانات من الحافظة ✅");
+  } catch (e) { showMsg("backupMsg", "تعذر فتح الإيميل"); }
+}
+async function restoreFile(file) {
+  if (!file) return;
+  showMsg("backupMsg", "");
+  try {
+    var text = await file.text();
+    var j = JSON.parse(text);
+    if (!j || j.version !== 1) { showMsg("backupMsg", "ملف غير صالح"); return; }
+    var i;
+    if (Array.isArray(j.products)) for (i = 0; i < j.products.length; i++) {
+      (function (p) { S.products = S.products.filter(function (x) { return x.id !== p.id; }); S.products.push(p); })(j.products[i]);
+    }
+    if (Array.isArray(j.purchases)) for (i = 0; i < j.purchases.length; i++) {
+      (function (p) { S.purchases = S.purchases.filter(function (x) { return x.id !== p.id; }); S.purchases.push(p); })(j.purchases[i]);
+    }
+    if (Array.isArray(j.sales)) for (i = 0; i < j.sales.length; i++) {
+      (function (s) { S.sales = S.sales.filter(function (x) { return x.id !== s.id; }); S.sales.push(s); })(j.sales[i]);
+    }
+    if (j.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, j.settings);
+    save(); applySettings(); renderAll();
+    showMsg("backupMsg", "تمت استعادة النسخة بنجاح ✅");
+  } catch (e) { showMsg("backupMsg", "تعذر قراءة الملف"); }
+}
+function renderSettingsInfo() {
+  try {
+    $("backupInfo").textContent = "المنتجات: " + S.products.length + " • المشتريات: " + S.purchases.length + " • المبيعات: " + S.sales.length;
+    var cm = $("connMsg");
+    if (cm) {
+      cm.textContent = sbOn() ? "الحالة: متصل بقاعدة Supabase السحابية ✅" : "الحالة: عمل محلي — أدخل Project URL أعلاه ثم احفظ";
+      cm.classList.remove("hidden");
+    }
+  } catch (e) {}
+}
+
+/* ---------- 15) قوائم الاختيار ---------- */
+function refreshDatalists() {
+  try {
+    var i, html = "";
+    for (i = 0; i < S.products.length; i++) {
+      html += '<option value="' + esc(S.products[i].name) + '">' + esc(String(S.products[i].salePrice)) + " ج — مخزون " + num(S.products[i].stock) + "</option>";
+    }
+    $("prodList").innerHTML = html; $("prodList2").innerHTML = html;
+    var sups = {}, s;
+    for (i = 0; i < S.purchases.length; i++) if (S.purchases[i].supplier) sups[S.purchases[i].supplier] = 1;
+    for (i = 0; i < S.products.length; i++) if (S.products[i].supplier) sups[S.products[i].supplier] = 1;
+    s = "";
+    for (var k in sups) if (Object.prototype.hasOwnProperty.call(sups, k)) s += '<option value="' + esc(k) + '">';
+    $("supList").innerHTML = s;
+  } catch (e) {}
+}
+
+/* ---------- 16) الكاميرا (باركود) ---------- */
+var camStream = null, camRAF = 0;
+function camSupported() { try { return typeof window !== "undefined" && "BarcodeDetector" in window; } catch (e) { return false; } }
+async function startCam(videoEl, boxEl, oncode) {
+  try {
+    if (!camSupported()) { toast("الكاميرا غير مدعومة — أدخل الباركود يدوياً"); return; }
+    stopCam();
+    var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    camStream = stream;
+    boxEl.classList.remove("hidden");
+    videoEl.srcObject = stream;
+    try { await videoEl.play(); } catch (e) {}
+    var BD = window.BarcodeDetector;
+    var det = new BD({ formats: ["qr_code", "ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"] });
+    var tick = async function () {
+      if (!camStream) return;
+      try {
+        var codes = await det.detect(videoEl);
+        if (codes && codes.length) {
+          var raw = String((codes[0].rawValue || "")).trim();
+          if (raw) { oncode(raw); stopCam(); boxEl.classList.add("hidden"); return; }
+        }
+      } catch (e) {}
+      camRAF = requestAnimationFrame(function () { tick(); });
+    };
+    tick();
+  } catch (e) { toast("تعذر فتح الكاميرا — أدخل الباركود يدوياً"); }
+}
+function stopCam() {
+  try { cancelAnimationFrame(camRAF); } catch (e) {}
+  try { if (camStream) camStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  camStream = null;
+}
+
+/* ---------- 17) التذكيرات الدينية ---------- */
+var dhikrTimer = null;
+function restartDhikr() {
+  try {
+    if (dhikrTimer) { clearInterval(dhikrTimer); dhikrTimer = null; }
+    if (!S.settings.dhikrEnabled) return;
+    var mins = Math.min(Math.max(1, num(S.settings.dhikrIntervalMin, 30)), 180);
+    setTimeout(function () {
+      try { if (S.settings.dhikrEnabled) toast(pickDhikr(), "dhikr"); } catch (e) {}
+    }, 10000);
+    dhikrTimer = setInterval(function () {
+      try { if (S.settings.dhikrEnabled) toast(pickDhikr(), "dhikr"); } catch (e) {}
+    }, mins * 60 * 1000);
+  } catch (e) {}
+}
+
+/* ---------- 18) العرض الشامل ---------- */
+function renderAll() {
+  try {
+    applySettings();
+    try { $("hdrUser").textContent = (S.session && S.session.email) || ""; } catch (e) {}
+    renderDash(); renderPurchHistory(); renderSalesHistory(); renderInv(); refreshDatalists();
+    if (!$("v-rep").classList.contains("hidden")) renderReports();
+    renderSettingsInfo();
+  } catch (e) {}
+}
+function setNet() {
+  try { $("netTxt").textContent = isOnline() ? "🟢 متصل" : "🔴 أوفلاين — يعمل محلياً"; } catch (e) {}
+}
+
+/* ---------- 19) ربط الأحداث + التهيئة ---------- */
+function bind() {
+  try { $("loginForm").addEventListener("submit", function (e) { doLogin(e); }); } catch (e) {}
+  try { $("btnLogout").addEventListener("click", function () { doLogout(); }); } catch (e) {}
+  try { $("btnSync").addEventListener("click", async function () { $("syncTxt").textContent = " • جارٍ المزامنة…"; await doSync(); $("syncTxt").textContent = ""; }); } catch (e) {}
+
+  var navs = document.querySelectorAll(".navBtn");
+  for (var i = 0; i < navs.length; i++) {
+    (function (b) { b.addEventListener("click", function () { showView(b.getAttribute("data-v")); }); })(navs[i]);
+  }
+
+  // المبيعات
+  try {
+    $("btnBarcodeAdd").addEventListener("click", function () { onBarcode($("barcodeInput").value); $("barcodeInput").value = ""; });
+    $("barcodeInput").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); onBarcode($("barcodeInput").value); $("barcodeInput").value = ""; } });
+    $("btnManualAdd").addEventListener("click", addManualSale);
+    $("manualInput").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addManualSale(); } });
+    $("saleDiscount").addEventListener("input", refreshSaleTotals);
+    $("btnSaveSale").addEventListener("click", function () { saveSale(); });
+    $("btnPreviewSale").addEventListener("click", function () {
+      try {
+        var box = $("lastSalePreview");
+        box.innerHTML = box.innerHTML ? "" : (lastSale ? invoiceHTML(lastSale) : "");
+      } catch (e) {}
+    });
+    $("btnPrintSale").addEventListener("click", function () { if (lastSale) doPrint(invoiceHTML(lastSale)); });
+    $("btnCamSales").addEventListener("click", function () { startCam($("camSalesVideo"), $("camSalesBox"), function (c) { onBarcode(c); }); });
+    $("btnCamSalesStop").addEventListener("click", function () { stopCam(); $("camSalesBox").classList.add("hidden"); });
+  } catch (e) {}
+  function addManualSale() {
+    try {
+      var name = $("manualInput").value.trim();
+      if (!name) return;
+      var m = null;
+      for (var i = 0; i < S.products.length; i++) if (S.products[i].name === name) m = S.products[i];
+      if (m) saleAddProduct(m.name, m.salePrice, m.purchasePrice, m.id, m.barcode);
+      else saleAddProduct(name, 0, 0);
+      $("manualInput").value = "";
+    } catch (e) {}
+  }
+
+  // المشتريات
+  try {
+    $("btnAddLine").addEventListener("click", function () { purDraft.lines.push(blankPurchLine()); renderPurchLines(); });
+    $("btnSavePurch").addEventListener("click", function () { savePurchase(); });
+    $("btnCancelEdit").addEventListener("click", function () { resetPurchForm(); });
+  } catch (e) {}
+
+  // المخزون
+  try {
+    $("btnSaveInv").addEventListener("click", function () { saveInvProduct(); });
+    $("invSearch").addEventListener("input", renderInv);
+    $("btnInvScan").addEventListener("click", function () {
+      var code = $("invBarcodeScan").value.trim();
+      if (!code) { showMsg("invMsg", "أدخل الباركود أولاً"); return; }
+      $("invBarcode").value = code;
+      var p = findByBarcode(code);
+      if (p) {
+        editingProductId = p.id;
+        $("invName").value = p.name || ""; $("invBuy").value = String(p.purchasePrice);
+        $("invSell").value = String(p.salePrice); $("invStock").value = String(p.stock);
+        $("invSupplier").value = p.supplier || "";
+        showMsg("invMsg", "تم العثور على الصنف — عدّل واحفظ ✅");
+      } else showMsg("invMsg", "باركود جديد — أكمل البيانات واحفظ");
+      $("invBarcodeScan").value = "";
+    });
+  } catch (e) {}
+
+  // التقارير
+  try {
+    var rs = document.querySelectorAll(".repR");
+    for (var r = 0; r < rs.length; r++) {
+      (function (b) { b.addEventListener("click", function () { repRange = b.getAttribute("data-r"); renderReports(); }); })(rs[r]);
+    }
+    $("btnPrintRep").addEventListener("click", function () {
+      try {
+        var f = repFiltered();
+        var rev = f.fs.reduce(function (a, s) { return a + num(s.netTotal); }, 0);
+        var prof = f.fs.reduce(function (a, s) { return a + num(s.profitTotal); }, 0);
+        var pur = f.fp.reduce(function (a, p) { return a + num(p.grandTotal); }, 0);
+        doPrint('<div style="max-width:90mm;margin:0 auto;font-family:monospace;text-align:center">' +
+          "<h2>" + esc(S.settings.companyName || "") + "</h2>" +
+          "<p dir='ltr'>" + esc(S.settings.shopPhone1 || "") + " • " + esc(S.settings.shopPhone2 || "") + "</p><p>تقرير " +
+          (repRange === "today" ? "اليوم" : repRange === "month" ? "الشهر" : "شامل") + " — " + esc(fmtDate(nowISO())) + "</p><hr>" +
+          "<p>الإيرادات: " + esc(fmtMoney(rev)) + "</p><p>الأرباح: " + esc(fmtMoney(prof)) + "</p>" +
+          "<p>المشتريات: " + esc(fmtMoney(pur)) + "</p><p><b>الصافي: " + esc(fmtMoney(rev - pur)) + "</b></p></div>");
+      } catch (e) {}
+    });
+  } catch (e) {}
+
+  // الإعدادات
+  var compT = null;
+  try {
+    $("setCompany").addEventListener("input", function () {
+      if (compT) clearTimeout(compT);
+      compT = setTimeout(function () {
+        try { S.settings.companyName = $("setCompany").value; save(); applySettings(); } catch (e) {}
+      }, 600);
+    });
+    $("setPhone1").addEventListener("change", function () { try { S.settings.shopPhone1 = $("setPhone1").value.trim(); save(); } catch (e) {} });
+    $("setPhone2").addEventListener("change", function () { try { S.settings.shopPhone2 = $("setPhone2").value.trim(); save(); } catch (e) {} });
+    $("themeLight").addEventListener("click", function () { S.settings.darkMode = false; save(); applySettings(); });
+    $("themeDark").addEventListener("click", function () { S.settings.darkMode = true; save(); applySettings(); });
+    $("setFontSize").addEventListener("change", function () { S.settings.fontSize = $("setFontSize").value; save(); applySettings(); });
+    $("setFontFace").addEventListener("change", function () { S.settings.fontFamily = $("setFontFace").value; save(); applySettings(); });
+    $("setLang").addEventListener("change", function () { S.settings.language = $("setLang").value; save(); applySettings(); });
+    $("dhikrToggle").addEventListener("click", function () { S.settings.dhikrEnabled = !S.settings.dhikrEnabled; save(); paintThemeBtns(); restartDhikr(); });
+    $("dhikrMin").addEventListener("change", function () {
+      S.settings.dhikrIntervalMin = Math.min(180, Math.max(1, num($("dhikrMin").value, 30)));
+      save(); restartDhikr();
+    });
+    $("btnSaveConn").addEventListener("click", function () {
+      try {
+        S.settings.supabaseUrl = $("sbUrl").value.trim();
+        S.settings.supabaseKey = $("sbKey").value.trim();
+        S.settings.allowedEmails = $("allowedEmails").value;
+        save(); sbInit();
+        var el = $("connMsg");
+        el.textContent = sbOn() ? "تم حفظ الاتصال — Supabase مفعّل ✅ (سجّل خروجك وادخل مجدداً)" : "تم الحفظ — العمل محلياً (بدون سحابة)";
+        el.classList.remove("hidden");
+        void doSync();
+      } catch (e) {}
+    });
+    $("btnBackupLocal").addEventListener("click", downloadBackup);
+    $("btnBackupMail").addEventListener("click", function () { emailBackup(); });
+    $("restoreFile").addEventListener("change", function () { restoreFile($("restoreFile").files && $("restoreFile").files[0]); $("restoreFile").value = ""; });
+  } catch (e) {}
+
+  try {
+    window.addEventListener("online", function () { setNet(); void doSync(); });
+    window.addEventListener("offline", setNet);
+  } catch (e) {}
+  setInterval(function () { try { if (isOnline() && sbOn()) void doSync(); } catch (e) {} }, 60000);
+}
+
+function fillSettingsForm() {
+  try {
+    $("setCompany").value = S.settings.companyName || "";
+    $("setPhone1").value = S.settings.shopPhone1 || "";
+    $("setPhone2").value = S.settings.shopPhone2 || "";
+    $("setFontSize").value = S.settings.fontSize || "medium";
+    $("setFontFace").value = S.settings.fontFamily || "cairo";
+    $("setLang").value = S.settings.language || "ar";
+    $("dhikrMin").value = String(S.settings.dhikrIntervalMin || 30);
+    $("sbUrl").value = effSbUrl();
+    $("sbKey").value = effSbKey();
+    $("allowedEmails").value = S.settings.allowedEmails || "";
+    $("year").textContent = String(new Date().getFullYear());
+  } catch (e) {}
+}
+
+async function init() {
+  loadState();
+  sbInit();
+  applySettings();
+  fillSettingsForm();
+  purDraft = { lines: [blankPurchLine()], editingId: null };
+  renderPurchLines();
+  renderSaleRows();
+  setNet();
+  bind();
+  restartDhikr();
+  // استعادة الجلسة
+  var hasSession = false;
+  try {
+    if (sbOn()) {
+      var r = await sb.auth.getSession();
+      var u = r && r.data && r.data.session && r.data.session.user;
+      if (u) { S.session = { email: u.email || "", id: u.id || null }; save(); hasSession = true; }
+      else { S.session = null; save(); } // لا جلسة سحابية → إظهار الدخول
+    } else if (S.session && S.session.email) { hasSession = true; }
+  } catch (e) { if (S.session && S.session.email && !sbOn()) hasSession = true; }
+  if (hasSession && S.session) enterApp();
+  else { try { $("loginView").classList.remove("hidden"); $("appView").classList.add("hidden"); } catch (e) {} }
+}
+
+try {
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { init(); });
+  else init();
+} catch (e) { try { init(); } catch (x) {} }
+
+})();
+</script>
+</body>
+</html>
