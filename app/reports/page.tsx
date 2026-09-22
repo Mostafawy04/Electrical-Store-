@@ -69,7 +69,7 @@ export default function ReportsPage() {
           <button
             key={r}
             onClick={() => setRange(r)}
-            className={`rounded-lg px-4 py-1.5 text-sm font-bold ${range === r ? "bg-green-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}
+            className={`rounded-lg px-4 py-1.5 text-sm font-bold ${range === r ? "bg-brand-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}
           >
             {r === "today" ? "اليوم" : r === "month" ? "الشهر" : "الكل"}
           </button>

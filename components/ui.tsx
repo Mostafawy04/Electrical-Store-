@@ -23,7 +23,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 export const inputCls =
-  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none transition focus:border-brand-600 dark:border-gray-700 dark:bg-gray-800";
 
 export function Empty({ text }: { text: string }) {
   return (

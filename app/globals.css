@@ -4,6 +4,8 @@
 
 :root {
   --font-stack: "Cairo", "Tajawal", system-ui, sans-serif;
+  --brand: #0f766e;
+  --brand-soft: #0f766e14;
 }
 
 html[data-font="tajawal"] body { font-family: "Tajawal", "Cairo", system-ui, sans-serif; }
@@ -12,11 +14,23 @@ body { font-family: var(--font-stack); }
 
 .dir-ltr { direction: ltr; }
 
+/* تحديد نص بلون الهوية */
+::selection { background: #0f766e33; }
+
+/* تركيز مريح وموحد لكل الحقول */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
 /* طباعة نظيفة */
 @media print {
   header, footer, nav, .no-print { display: none !important; }
 }
 
-/* سكرول لطيف */
+/* سكرول لطيف بلون الهوية */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: #16a34a55; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #0f766e55; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #0f766e88; }

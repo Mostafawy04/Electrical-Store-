@@ -1,7 +1,8 @@
 "use client";
-// إدارة الحالة المركزية: تحميل من IndexedDB + حفظ تلقائي + مزامنة — بدون أي Runtime Errors
+// إدارة الحالة المركزية: IndexedDB محلي (دائم) + Supabase سحابي (دائم لكل مستخدم)
+// — تسجيل الخروج لا يمسح أي بيانات إطلاقاً؛ تُعاد المزامنة فور تسجيل الدخول
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { AppSettings, Product, Purchase, Sale, OutboxOp } from "./types";
+import type { AppSettings, Customer, Product, Purchase, Sale, OutboxOp } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { db } from "./db";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
@@ -18,6 +19,7 @@ interface AppState {
   products: Product[];
   purchases: Purchase[];
   sales: Sale[];
+  customers: Customer[];
   settings: AppSettings;
 }
 
@@ -31,6 +33,8 @@ interface AppActions {
   deletePurchase: (id: string) => Promise<void>;
   addSale: (s: Sale) => Promise<void>;
   deleteSale: (id: string) => Promise<void>;
+  addOrUpdateCustomer: (c: Partial<Customer> & { name: string }) => Promise<Customer>;
+  deleteCustomer: (id: string) => Promise<void>;
   findProductByBarcode: (barcode: string) => Product | undefined;
   refresh: () => Promise<void>;
   doSync: () => Promise<void>;
@@ -55,20 +59,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const syncTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncingRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  userIdRef.current = userId;
 
   const refresh = useCallback(async () => {
     try {
-      const [p, pu, s, st] = await Promise.all([
+      const [p, pu, s, cu, st] = await Promise.all([
         db.getProducts().catch(() => [] as Product[]),
         db.getPurchases().catch(() => [] as Purchase[]),
         db.getSales().catch(() => [] as Sale[]),
+        db.getCustomers().catch(() => [] as Customer[]),
         db.getSettings(DEFAULT_SETTINGS).catch(() => DEFAULT_SETTINGS),
       ]);
       setProducts(Array.isArray(p) ? p : []);
       setPurchases(Array.isArray(pu) ? pu : []);
       setSales(Array.isArray(s) ? s : []);
+      setCustomers(Array.isArray(cu) ? cu : []);
       setSettings({ ...DEFAULT_SETTINGS, ...(st ?? {}) });
     } catch {
       // يبقى التطبيق يعمل بالحالة الفارغة
@@ -77,19 +87,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // استعادة الجلسة + أول تحميل
+  const doSync = useCallback(async () => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    setSyncing(true);
+    try {
+      const r = await syncNow(userIdRef.current);
+      if (r.pulled) {
+        setLastSync(nowISO());
+        await refresh();
+      }
+    } catch { /* ignore */ }
+    finally {
+      syncingRef.current = false;
+      setSyncing(false);
+    }
+  }, [refresh]);
+
+  // استعادة الجلسة + أول تحميل + الاشتراك في تغيّر المصادقة
   useEffect(() => {
     let alive = true;
+    let authSub: { unsubscribe: () => void } | null = null;
     (async () => {
+      // حمّل المحلي أولاً ليعمل التطبيق فوراً (Offline-first)
       await refresh();
       try {
         if (isSupabaseConfigured()) {
           const sb = getSupabase();
           const { data } = (await sb?.auth.getSession()) ?? { data: { session: null } };
           if (alive && data?.session?.user) {
-            setUserEmail(data.session.user.email ?? null);
-            setUserId(data.session.user.id ?? null);
+            const u = data.session.user;
+            setUserEmail(u.email ?? null);
+            setUserId(u.id ?? null);
+            // اسحب بيانات هذا المستخدم من السحابة فوراً
+            try {
+              const r = await syncNow(u.id ?? null);
+              if (alive && r.pulled) {
+                setLastSync(nowISO());
+                await refresh();
+              }
+            } catch { /* ignore */ }
           }
+          // تابع الدخول/الخروج لاحقاً (انتهاء الجلسة، دخول جديد…)
+          try {
+            const { data: listener } = sb?.auth.onAuthStateChange((event, session) => {
+              if (!alive) return;
+              if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+                const u = session?.user;
+                if (u) {
+                  setUserEmail(u.email ?? null);
+                  setUserId(u.id ?? null);
+                  // دخول (جديد أو مستعاد): اسحب السحابة وادمجها مع المحلي
+                  void (async () => {
+                    try {
+                      const r = await syncNow(u.id ?? null);
+                      if (r.pulled) {
+                        setLastSync(nowISO());
+                        await refresh();
+                      }
+                    } catch { /* ignore */ }
+                  })();
+                }
+              } else if (event === "SIGNED_OUT") {
+                // خروج: نمسح الهوية فقط — البيانات المحلية والسحابية تبقى كما هي
+                setUserEmail(null);
+                setUserId(null);
+                try { localStorage.removeItem("salesapp_session_email"); } catch { /* ignore */ }
+              }
+            }) ?? { data: { subscription: null } };
+            const sub = (listener as { subscription?: { unsubscribe: () => void } | null })?.subscription ?? null;
+            authSub = sub;
+          } catch { /* ignore */ }
         } else {
           try {
             const em = localStorage.getItem("salesapp_session_email");
@@ -109,40 +177,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       alive = false;
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      try { authSub?.unsubscribe(); } catch { /* ignore */ }
     };
   }, [refresh]);
 
-  const doSync = useCallback(async () => {
-    if (syncing) return;
-    setSyncing(true);
-    try {
-      const r = await syncNow(userId);
-      if (r.pulled) {
-        setLastSync(nowISO());
-        await refresh();
-      }
-    } catch { /* ignore */ }
-    finally {
-      setSyncing(false);
-    }
-  }, [syncing, userId, refresh]);
-
   // مزامنة تلقائية كل 60 ثانية عند الاتصال
   useEffect(() => {
-    if (syncTimer.current) clearInterval(syncTimer.current);
+    if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setInterval(() => {
       try {
-        if (isOnline() && isSupabaseConfigured()) void doSync();
+        if (isOnline() && isSupabaseConfigured() && userIdRef.current) void doSync();
       } catch { /* ignore */ }
     }, 60000);
     return () => { if (syncTimer.current) clearInterval(syncTimer.current); };
   }, [doSync]);
 
-  // مزامنة فورية عند عودة الإنترنت
+  // مزامنة فورية عند عودة الإنترنت أو تغيّر المستخدم (دخول)
   useEffect(() => {
-    if (online) void doSync();
+    if (online && userId) void doSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online]);
+  }, [online, userId]);
 
   // تطبيق الثيم وحجم/نوع الخط والاتجاه
   useEffect(() => {
@@ -164,6 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (email) localStorage.setItem("salesapp_session_email", email);
       else localStorage.removeItem("salesapp_session_email");
     } catch { /* ignore */ }
+    // ملاحظة: لا نمسح أي بيانات محلية هنا أبداً — فقط الهوية
   }, []);
 
   const saveSettings = useCallback(async (patch: Partial<AppSettings>) => {
@@ -284,6 +339,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void queueOp("sales", "delete", { id });
   }, []);
 
+  const addOrUpdateCustomer = useCallback(async (c: Partial<Customer> & { name: string }) => {
+    const now = nowISO();
+    const row: Customer = {
+      id: c.id ?? uid("cus"),
+      name: (c.name ?? "").trim() || "عميل بدون اسم",
+      phone: c.phone?.trim() || undefined,
+      balance: Math.max(0, toNum(c.balance)),
+      notes: c.notes?.trim() || undefined,
+      createdAt: c.createdAt ?? now,
+      updatedAt: now,
+      synced: false,
+    };
+    await db.saveCustomer(row).catch(() => undefined);
+    setCustomers((prev) => [...prev.filter((x) => x.id !== row.id), row]);
+    void queueOp("customers", "upsert", row);
+    return row;
+  }, []);
+
+  const deleteCustomer = useCallback(async (id: string) => {
+    await db.deleteCustomer(id).catch(() => undefined);
+    setCustomers((prev) => prev.filter((x) => x.id !== id));
+    void queueOp("customers", "delete", { id });
+  }, []);
+
   const findProductByBarcode = useCallback((barcode: string) => {
     const b = (barcode ?? "").trim();
     if (!b) return undefined;
@@ -293,14 +372,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       ready, userEmail, userId, online, syncing, lastSync,
-      products, purchases, sales, settings,
+      products, purchases, sales, customers, settings,
       setUser, saveSettings, addOrUpdateProduct, deleteProduct,
       addPurchase, updatePurchase, deletePurchase, addSale, deleteSale,
+      addOrUpdateCustomer, deleteCustomer,
       findProductByBarcode, refresh, doSync,
     }),
-    [ready, userEmail, userId, online, syncing, lastSync, products, purchases, sales, settings,
+    [ready, userEmail, userId, online, syncing, lastSync, products, purchases, sales, customers, settings,
       setUser, saveSettings, addOrUpdateProduct, deleteProduct, addPurchase, updatePurchase,
-      deletePurchase, addSale, deleteSale, findProductByBarcode, refresh, doSync]
+      deletePurchase, addSale, deleteSale, addOrUpdateCustomer, deleteCustomer,
+      findProductByBarcode, refresh, doSync]
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
@@ -312,7 +393,7 @@ export function useApp(): AppState & AppActions {
     // fallback آمن يمنع الانهيار خارج المزود
     return {
       ready: true, userEmail: null, userId: null, online: true, syncing: false, lastSync: null,
-      products: [], purchases: [], sales: [], settings: DEFAULT_SETTINGS,
+      products: [], purchases: [], sales: [], customers: [], settings: DEFAULT_SETTINGS,
       setUser: () => undefined,
       saveSettings: async () => undefined,
       addOrUpdateProduct: async (p) => ({ id: uid("prd"), name: p.name, purchasePrice: 0, salePrice: 0, stock: 0, createdAt: nowISO(), updatedAt: nowISO() }),
@@ -322,6 +403,8 @@ export function useApp(): AppState & AppActions {
       deletePurchase: async () => undefined,
       addSale: async () => undefined,
       deleteSale: async () => undefined,
+      addOrUpdateCustomer: async (c) => ({ id: uid("cus"), name: c.name, phone: undefined, balance: 0, createdAt: nowISO(), updatedAt: nowISO() }),
+      deleteCustomer: async () => undefined,
       findProductByBarcode: () => undefined,
       refresh: async () => undefined,
       doSync: async () => undefined,

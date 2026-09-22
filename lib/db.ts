@@ -1,10 +1,10 @@
 // طبقة التخزين المحلي: IndexedDB أولاً، ثم LocalStorage كاحتياطي — تعمل Offline بالكامل
-import type { OutboxOp, Product, Purchase, Sale, AppSettings } from "./types";
+import type { Customer, OutboxOp, Product, Purchase, Sale, AppSettings } from "./types";
 import { safeParseJSON } from "./utils";
 
 const DB_NAME = "sales-app-db";
-const DB_VERSION = 1;
-const STORES = ["products", "purchases", "sales", "kv", "outbox"] as const;
+const DB_VERSION = 2;
+const STORES = ["products", "purchases", "sales", "customers", "kv", "outbox"] as const;
 
 function idbSupported(): boolean {
   try {
@@ -176,6 +176,27 @@ export const db = {
       if (idbSupported()) { await idbDelete("sales", id); return; }
     } catch { /* fallback */ }
     lsSet("sales", lsGet<Sale[]>("sales", []).filter((x) => x.id !== id));
+  },
+
+  async getCustomers(): Promise<Customer[]> {
+    try {
+      if (idbSupported()) return await idbAll<Customer>("customers");
+    } catch { /* fallback */ }
+    return lsGet<Customer[]>("customers", []);
+  },
+  async saveCustomer(c: Customer): Promise<void> {
+    try {
+      if (idbSupported()) { await idbPut("customers", c as unknown as Record<string, unknown>); return; }
+    } catch { /* fallback */ }
+    const all = lsGet<Customer[]>("customers", []).filter((x) => x.id !== c.id);
+    all.push(c);
+    lsSet("customers", all);
+  },
+  async deleteCustomer(id: string): Promise<void> {
+    try {
+      if (idbSupported()) { await idbDelete("customers", id); return; }
+    } catch { /* fallback */ }
+    lsSet("customers", lsGet<Customer[]>("customers", []).filter((x) => x.id !== id));
   },
 
   async getSettings(fallback: AppSettings): Promise<AppSettings> {

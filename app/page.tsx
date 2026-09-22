@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-l from-green-600 to-emerald-500 p-5 text-white">
+      <div className="rounded-2xl bg-gradient-to-l from-brand-700 to-brand-500 p-5 text-white shadow-sm">
         <h2 className="text-xl font-black">أهلاً بك في {settings.companyName} 👋</h2>
         <p className="mt-1 text-sm opacity-90">ملخص حركة اليوم والشهر — الأرباح محسوبة بدقة (سعر البيع − سعر الشراء)</p>
       </div>
@@ -82,7 +82,7 @@ export default function Dashboard() {
           {week.days.map((d, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
               <div
-                className="w-full rounded-t-lg bg-green-500"
+                className="w-full rounded-t-lg bg-brand-500"
                 style={{ height: `${Math.max(4, (d.total / week.max) * 100)}px` }}
                 title={fmtMoney(d.total)}
               />

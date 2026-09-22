@@ -11,15 +11,18 @@ export interface BackupPayload {
   products: unknown[];
   purchases: unknown[];
   sales: unknown[];
+  customers: unknown[];
 }
 
 export async function buildBackup(userEmail?: string): Promise<BackupPayload> {
-  const [products, purchases, sales, settings] = await Promise.all([
+  const [products, purchases, sales, customers, settings] = await Promise.all([
     db.getProducts().catch(() => []),
     db.getPurchases().catch(() => []),
     db.getSales().catch(() => []),
+    db.getCustomers().catch(() => []),
     db.getSettings({
       companyName: "",
+      storePhones: "",
       darkMode: false,
       fontSize: "medium",
       fontFamily: "cairo",
@@ -36,6 +39,7 @@ export async function buildBackup(userEmail?: string): Promise<BackupPayload> {
     products,
     purchases,
     sales,
+    customers,
   };
 }
 
@@ -69,6 +73,7 @@ export async function backupViaEmail(payload: BackupPayload, userEmail?: string)
     const body = encodeURIComponent(
       `السلام عليكم،\n\nهذه نسخة احتياطية من نظام المبيعات بتاريخ ${payload.exportedAt}.\n` +
       `عدد المنتجات: ${(payload.products ?? []).length}\n` +
+      `عدد العملاء: ${(payload.customers ?? []).length}\n` +
       `عدد فواتير المشتريات: ${(payload.purchases ?? []).length}\n` +
       `عدد فواتير المبيعات: ${(payload.sales ?? []).length}\n\n` +
       `ملاحظة: تم نسخ ملف JSON الكامل إلى الحافظة، والصقه في مسودة الإيميل أو احفظه كمرفق بعد تنزيله من زر "تنزيل نسخة محلية".\n`
@@ -85,12 +90,13 @@ export async function backupViaEmail(payload: BackupPayload, userEmail?: string)
 export async function restoreBackup(payload: BackupPayload): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!payload || payload.version !== 1) return { ok: false, error: "ملف غير صالح" };
-    const { products, purchases, sales, settings } = payload as BackupPayload & {
-      products: never[]; purchases: never[]; sales: never[];
+    const { products, purchases, sales, customers, settings } = payload as BackupPayload & {
+      products: never[]; purchases: never[]; sales: never[]; customers: never[];
     };
     if (Array.isArray(products)) for (const p of products) await db.saveProduct(p as never);
     if (Array.isArray(purchases)) for (const p of purchases) await db.savePurchase(p as never);
     if (Array.isArray(sales)) for (const s of sales) await db.saveSale(s as never);
+    if (Array.isArray(customers)) for (const c of customers) await db.saveCustomer(c as never);
     if (settings) await db.saveSettings(settings as never);
     return { ok: true };
   } catch (e) {

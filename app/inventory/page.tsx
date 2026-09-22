@@ -72,7 +72,7 @@ export default function InventoryPage() {
           <Field label="المخزون"><input value={stock} onChange={(e) => setStock(e.target.value)} className={inputCls} inputMode="numeric" dir="ltr" /></Field>
         </div>
         {!!msg && <p className="mt-2 text-sm font-bold">{msg}</p>}
-        <button onClick={() => void save()} className="mt-3 w-full rounded-lg bg-green-600 py-2.5 font-bold text-white hover:bg-green-700">
+        <button onClick={() => void save()} className="mt-3 w-full rounded-lg bg-brand-600 py-2.5 font-bold text-white hover:bg-brand-700">
           حفظ الصنف
         </button>
       </div>

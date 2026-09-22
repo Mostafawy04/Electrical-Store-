@@ -1,29 +1,43 @@
 // أدوات مشاركة الفاتورة: نص منسق + Web Share API + واتساب — تعمل على الموبايل والديسكتوب
 import type { Sale } from "./types";
+import { DEFAULT_STORE_NAME, DEFAULT_STORE_PHONES, calcInvoiceTotals, displayInvoiceNo } from "./types";
 import { fmtDate, fmtMoney, toNum } from "./utils";
 import { getRandomDhikr } from "./i18n";
 
-/** رقم مختصر للفاتورة من الـ id */
+/** رقم الفاتورة المعروض (متسلسل أو مختصر الـ id) — للتوافق مع الاستدعاءات القديمة */
 export function shortInvoiceNo(id: string | undefined | null): string {
   if (!id) return "—";
   const s = String(id);
   return s.length > 6 ? s.slice(-6) : s;
 }
 
-/** بناء نص الفاتورة للمشاركة (واتساب / نسخ / Web Share) */
-export function buildInvoiceText(sale: Sale, companyName: string): string {
-  const name = (companyName || "مؤسستي التجارية").trim();
+/** بناء نص الفاتورة الكلاسيكية للمشاركة (واتساب / نسخ / Web Share) */
+export function buildInvoiceText(sale: Sale, companyName: string, storePhones?: string): string {
+  const name = (companyName || DEFAULT_STORE_NAME).trim();
+  const phones = (storePhones || "").trim() || DEFAULT_STORE_PHONES;
   const items = sale?.items ?? [];
+  const customer = (sale?.customerName ?? "").trim() || "عميل نقدي";
+  const t = calcInvoiceTotals({
+    items: items as Array<{ qty?: unknown }>,
+    subtotal: sale?.subtotal,
+    discount: sale?.discount,
+    netTotal: sale?.netTotal,
+    previousBalance: sale?.previousBalance,
+    paid: sale?.paid,
+  });
   const lines: string[] = [];
 
-  lines.push(`🧾 *${name}*`);
-  lines.push(`فاتورة بيع #${shortInvoiceNo(sale?.id)}`);
+  lines.push(`⚡ *${name}*`);
+  lines.push(`📞 ${phones}`);
+  lines.push(`🧾 فاتورة بيع #${displayInvoiceNo(sale)}`);
+  lines.push(`👤 العميل: ${customer}`);
   lines.push(`📅 ${fmtDate(sale?.date)}`);
   lines.push(`———————————`);
 
   if (items.length === 0) {
     lines.push(`(لا توجد أصناف)`);
   } else {
+    lines.push(`م | الصنف | الكمية | السعر | الإجمالي`);
     items.forEach((it, i) => {
       const qty = toNum(it?.qty, 0);
       const price = toNum(it?.salePrice, 0);
@@ -34,16 +48,21 @@ export function buildInvoiceText(sale: Sale, companyName: string): string {
   }
 
   lines.push(`———————————`);
-  lines.push(`الإجمالي: ${fmtMoney(sale?.subtotal)}`);
+  lines.push(`إجمالي كمية الأصناف: ${t.totalQty}`);
+  lines.push(`الحساب السابق (عليكم): ${fmtMoney(t.prevBalance)}`);
   if (toNum(sale?.discount, 0) > 0) {
     lines.push(`الخصم: ${fmtMoney(sale?.discount)}`);
   }
-  lines.push(`*الصافي: ${fmtMoney(sale?.netTotal)}*`);
+  lines.push(`اجمالي الفاتورة: ${fmtMoney(t.invoiceTotal)}`);
+  lines.push(`الاجمالي العام: ${fmtMoney(t.grandTotal)}`);
+  lines.push(`المدفوع: ${fmtMoney(t.paid)}`);
+  lines.push(`*الحساب الحالي (عليكم): ${fmtMoney(t.currentBalance)}*`);
   if (sale?.notes?.trim()) {
     lines.push(`📝 ملاحظات: ${sale.notes.trim()}`);
   }
   lines.push(`———————————`);
   lines.push(`شكراً لتعاملكم معنا 🌹`);
+  lines.push(`📞 ${phones}`);
 
   // خاتمة دينية متجددة (غير ثابتة)
   try {
@@ -65,9 +84,9 @@ export function canNativeShare(): boolean {
 }
 
 /** مشاركة عبر Web Share API مع fallback تلقائي للنسخ */
-export async function shareInvoice(sale: Sale, companyName: string): Promise<"shared" | "copied" | "failed"> {
-  const text = buildInvoiceText(sale, companyName);
-  const title = `فاتورة ${companyName} #${shortInvoiceNo(sale?.id)}`;
+export async function shareInvoice(sale: Sale, companyName: string, storePhones?: string): Promise<"shared" | "copied" | "failed"> {
+  const text = buildInvoiceText(sale, companyName, storePhones);
+  const title = `فاتورة ${companyName} #${displayInvoiceNo(sale)}`;
 
   // 1) Web Share API (الأفضل للموبايل — يفتح قائمة واتساب/تليجرام/…)
   if (canNativeShare()) {
@@ -109,8 +128,8 @@ export async function shareInvoice(sale: Sale, companyName: string): Promise<"sh
 }
 
 /** فتح واتساب مباشرة مع نص الفاتورة (اختياري: رقم العميل بدون + مثل 2010xxxxxxx) */
-export function openWhatsAppShare(sale: Sale, companyName: string, customerPhone = ""): void {
-  const text = buildInvoiceText(sale, companyName);
+export function openWhatsAppShare(sale: Sale, companyName: string, customerPhone = "", storePhones?: string): void {
+  const text = buildInvoiceText(sale, companyName, storePhones);
   const phone = (customerPhone || "").replace(/[^\d]/g, "");
   const url = phone
     ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
@@ -123,8 +142,8 @@ export function openWhatsAppShare(sale: Sale, companyName: string, customerPhone
 }
 
 /** نسخ نص الفاتورة فقط — تُرجع true عند النجاح */
-export async function copyInvoiceText(sale: Sale, companyName: string): Promise<boolean> {
-  const text = buildInvoiceText(sale, companyName);
+export async function copyInvoiceText(sale: Sale, companyName: string, storePhones?: string): Promise<boolean> {
+  const text = buildInvoiceText(sale, companyName, storePhones);
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);

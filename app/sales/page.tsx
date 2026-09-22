@@ -13,7 +13,7 @@ interface DraftRow { key: string; productId?: string; name: string; barcode: str
 
 export default function SalesPage() {
   const router = useRouter();
-  const { ready, userEmail, products, findProductByBarcode, addSale, deleteSale, sales, settings } = useApp();
+  const { ready, userEmail, products, findProductByBarcode, addSale, deleteSale, sales, customers, addOrUpdateCustomer, settings } = useApp();
   const [rows, setRows] = useState<DraftRow[]>([]);
   const [discount, setDiscount] = useState("0");
   const [notes, setNotes] = useState("");
@@ -24,6 +24,20 @@ export default function SalesPage() {
   const [shareMsg, setShareMsg] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [sharing, setSharing] = useState(false);
+  // ——— بيانات الفاتورة الكلاسيكية (حسابات العملاء) ———
+  const [customerName, setCustomerName] = useState("");
+  const [prevBalance, setPrevBalance] = useState("0");
+  const [paid, setPaid] = useState("");
+
+  // رقم الفاتورة التالي (متسلسل تلقائياً من أعلى رقم محفوظ)
+  const nextInvoiceNo = useMemo(() => {
+    let max = 0;
+    for (const s of sales) {
+      const n = parseInt(String(s.invoiceNo ?? "").replace(/[^\d]/g, ""), 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+    return String(max + 1);
+  }, [sales]);
 
   useEffect(() => {
     if (ready && !userEmail) router.replace("/login");
@@ -71,12 +85,24 @@ export default function SalesPage() {
     return { items, subtotal, disc, net: Math.max(0, subtotal - disc), profit: items.reduce((a, x) => a + x.profit, 0) };
   }, [rows, discount]);
 
+  // معاينة حية للإجمالي العام والحالي أثناء التحرير
+  const liveTotals = useMemo(() => {
+    const prev = Math.max(0, toNum(prevBalance));
+    const net = Math.max(0, computed.net);
+    const grand = prev + net;
+    const paidVal = paid.trim() === "" ? grand : Math.min(Math.max(0, toNum(paid)), grand);
+    return { prev, net, grand, paidVal, current: Math.max(0, grand - paidVal) };
+  }, [prevBalance, paid, computed.net]);
+
   async function save() {
     setMsg("");
     if (computed.items.length === 0) { setMsg("أضف صنفاً واحداً على الأقل"); return; }
     if (computed.items.length > 30) { setMsg("الحد الأقصى 30 صنفاً في الفاتورة"); return; }
     const bad = computed.items.find((x) => !x.name.trim() || x.qty <= 0);
     if (bad) { setMsg("راجع الأصناف: الاسم والكمية مطلوبان"); return; }
+    const prev = Math.max(0, toNum(prevBalance));
+    const grand = prev + computed.net;
+    const paidVal = paid.trim() === "" ? grand : Math.min(Math.max(0, toNum(paid)), grand);
     const sale: Sale = {
       id: uid("sal"),
       items: computed.items.map((x): SaleItem => ({
@@ -90,6 +116,10 @@ export default function SalesPage() {
       profitTotal: computed.profit,
       date: nowISO(),
       notes: notes.trim() || undefined,
+      customerName: customerName.trim() || undefined,
+      invoiceNo: nextInvoiceNo,
+      previousBalance: prev,
+      paid: paidVal,
     };
     try {
       await addSale(sale);
@@ -99,7 +129,10 @@ export default function SalesPage() {
       setRows([]);
       setDiscount("0");
       setNotes("");
-      setMsg("تم حفظ فاتورة البيع ✅ — يمكنك طباعتها أو مشاركتها واتساب من الأسفل");
+      setCustomerName("");
+      setPrevBalance("0");
+      setPaid("");
+      setMsg(`تم حفظ فاتورة البيع رقم ${nextInvoiceNo} ✅ — يمكنك طباعتها أو مشاركتها واتساب من الأسفل`);
     } catch {
       setMsg("تعذر الحفظ — حاول مجدداً");
     }
@@ -113,7 +146,7 @@ export default function SalesPage() {
     setSharing(true);
     setShareMsg("");
     try {
-      const res = await shareInvoice(lastSale, settings.companyName);
+      const res = await shareInvoice(lastSale, settings.companyName, settings.storePhones);
       if (res === "shared") setShareMsg("تمت المشاركة بنجاح ✅");
       else if (res === "copied") setShareMsg("تم نسخ نص الفاتورة — الصقه في واتساب ✅");
       // تجاهل الإلغاء الصامت (AbortError → "failed" بدون رسالة)
@@ -128,7 +161,7 @@ export default function SalesPage() {
     if (!lastSale) return;
     setShareMsg("");
     try {
-      openWhatsAppShare(lastSale, settings.companyName, customerPhone);
+      openWhatsAppShare(lastSale, settings.companyName, customerPhone, settings.storePhones);
     } catch {
       setShareMsg("تعذر فتح واتساب");
     }
@@ -138,7 +171,7 @@ export default function SalesPage() {
     if (!lastSale) return;
     setShareMsg("");
     try {
-      const ok = await copyInvoiceText(lastSale, settings.companyName);
+      const ok = await copyInvoiceText(lastSale, settings.companyName, settings.storePhones);
       setShareMsg(ok ? "تم نسخ الفاتورة ✅" : "تعذر النسخ");
     } catch {
       setShareMsg("تعذر النسخ");
@@ -213,14 +246,58 @@ export default function SalesPage() {
           <Field label="ملاحظات">
             <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} />
           </Field>
-          <div className="rounded-xl bg-green-50 p-3 text-sm dark:bg-green-950">
+          <div className="rounded-xl bg-brand-50 p-3 text-sm dark:bg-brand-950">
             <div className="flex justify-between"><span>الإجمالي:</span><b>{fmtMoney(computed.subtotal)}</b></div>
             <div className="flex justify-between"><span>الخصم:</span><b>{fmtMoney(computed.disc)}</b></div>
             <div className="flex justify-between text-lg"><span>الصافي (بسعر الجمهور):</span><b>{fmtMoney(computed.net)}</b></div>
           </div>
         </div>
 
-        <button onClick={() => void save()} className="mt-3 w-full rounded-lg bg-green-600 py-2.5 font-bold text-white hover:bg-green-700">
+        <div className="mt-4 grid gap-2 md:grid-cols-3">
+          <Field label={`رقم الفاتورة (تلقائي)`}>
+            <input value={nextInvoiceNo} readOnly className={`${inputCls} bg-gray-50 font-black dark:bg-gray-800`} dir="ltr" />
+          </Field>
+          <Field label="اسم العميل">
+            <input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className={inputCls}
+              placeholder="اسم العميل (اختياري)"
+              list="all-customers"
+            />
+          </Field>
+          <Field label="الحساب السابق (عليكم)">
+            <input value={prevBalance} onChange={(e) => setPrevBalance(e.target.value)} className={inputCls} inputMode="decimal" dir="ltr" placeholder="0" />
+          </Field>
+        </div>
+        <datalist id="all-customers">
+          {customers.map((c) => <option key={c.id} value={c.name}>{c.phone ? `${c.phone} — رصيد ${c.balance}` : `رصيد ${c.balance}`}</option>)}
+        </datalist>
+
+        <div className="mt-2 grid gap-2 md:grid-cols-3">
+          <Field label="المدفوع (فارغ = سداد كامل)">
+            <input value={paid} onChange={(e) => setPaid(e.target.value)} className={inputCls} inputMode="decimal" dir="ltr" placeholder="سداد كامل" />
+          </Field>
+          <div className="rounded-xl bg-slate-100 p-3 text-sm dark:bg-gray-800">
+            <div className="flex justify-between"><span>الاجمالي العام (السابق + الفاتورة):</span><b>{fmtMoney(liveTotals.grand)}</b></div>
+            <div className="flex justify-between"><span>المدفوع:</span><b>{fmtMoney(liveTotals.paidVal)}</b></div>
+            <div className="flex justify-between font-black"><span>الحساب الحالي (عليكم):</span><b>{fmtMoney(liveTotals.current)}</b></div>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                const nm = customerName.trim();
+                if (!nm) { setMsg("أدخل اسم العميل أولاً لحفظه في الحسابات"); return; }
+                void addOrUpdateCustomer({ name: nm, balance: liveTotals.current }).then(() => setMsg(`تم تحديث حساب ${nm} ✅`));
+              }}
+              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-50 dark:border-gray-700 dark:hover:bg-gray-800"
+            >
+              💾 حفظ/تحديث حساب العميل
+            </button>
+          </div>
+        </div>
+
+        <button onClick={() => void save()} className="mt-3 w-full rounded-lg bg-brand-600 py-2.5 font-bold text-white hover:bg-brand-700">
           حفظ الفاتورة
         </button>
       </div>
@@ -266,8 +343,8 @@ export default function SalesPage() {
               className={`${inputCls} sm:max-w-[200px]`}
             />
           </div>
-          {!!shareMsg && <p className="no-print mb-2 text-sm font-bold text-green-700 dark:text-green-400">{shareMsg}</p>}
-          {showPrint && <InvoicePrint sale={lastSale} companyName={settings.companyName} />}
+          {!!shareMsg && <p className="no-print mb-2 text-sm font-bold text-brand-700 dark:text-brand-300">{shareMsg}</p>}
+          {showPrint && <InvoicePrint sale={lastSale} companyName={settings.companyName} storePhones={settings.storePhones} />}
         </div>
       )}
 
@@ -278,7 +355,9 @@ export default function SalesPage() {
             {sorted.slice(0, 20).map((s) => (
               <div key={s.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
                 <div>
-                  <p className="font-bold">{fmtMoney(s.netTotal)}</p>
+                  <p className="font-bold">
+                    {s.invoiceNo ? `#${s.invoiceNo} • ` : ""}{s.customerName ? `${s.customerName} • ` : ""}{fmtMoney(s.netTotal)}
+                  </p>
                   <p className="text-xs text-gray-500">{fmtDate(s.date)} • {(s.items ?? []).length} أصناف</p>
                 </div>
                 <button onClick={() => { if (confirm("حذف الفاتورة؟")) void deleteSale(s.id); }} className="text-sm text-red-600">حذف</button>

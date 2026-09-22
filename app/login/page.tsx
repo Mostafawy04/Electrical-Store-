@@ -126,7 +126,7 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center">
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 text-center">
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-600 text-3xl text-white">🛒</div>
+          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-3xl text-white">🛒</div>
           <h1 className="text-xl font-black">تسجيل الدخول</h1>
           <p className="mt-1 text-sm text-gray-500">للمستخدمين المفعّلين فقط — لا يوجد تسجيل جديد</p>
         </div>
@@ -160,7 +160,7 @@ export default function LoginPage() {
               type="checkbox"
               checked={remember}
               onChange={(e) => onRememberChange(e.target.checked)}
-              className="h-4 w-4 accent-green-600"
+              className="h-4 w-4 accent-brand-600"
             />
             تذكر البريد الإلكتروني على هذا الجهاز
           </label>
@@ -182,7 +182,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-green-600 py-2.5 font-bold text-white hover:bg-green-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-brand-600 py-2.5 font-bold text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {loading ? "جارٍ الدخول…" : "دخول"}
           </button>

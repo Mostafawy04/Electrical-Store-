@@ -37,12 +37,12 @@ export function Shell({ children }: { children: ReactNode }) {
   if (pathname === "/login") return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-gray-950 dark:text-gray-100">
       <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-900/90">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-xl text-white">🛒</div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-xl text-white">🛒</div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold">{settings.companyName || "مؤسستي التجارية"}</h1>
+            <h1 className="truncate text-lg font-bold">{settings.companyName || "مؤسسة الجبالي للأدوات الكهربائية"}</h1>
             <p className="truncate text-xs text-gray-500 dark:text-gray-400">
               {userEmail ?? ""} • {online ? "🟢 متصل" : "🔴 أوفلاين — يعمل محلياً"}
               {syncing ? " • جارٍ المزامنة…" : ""}
@@ -71,7 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 href={n.href}
                 className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold ${
                   active
-                    ? "bg-green-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
@@ -94,7 +94,7 @@ export function Shell({ children }: { children: ReactNode }) {
               href={WHATSAPP}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700"
             >
               <span>💬</span> {t(settings.language, "support")} واتساب: 01113008004
             </a>

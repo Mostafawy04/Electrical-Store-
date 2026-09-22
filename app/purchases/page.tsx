@@ -157,7 +157,7 @@ export default function PurchasesPage() {
                   </Field>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="font-bold text-green-700 dark:text-green-300">الإجمالي بعد الخصم: {fmtMoney(c?.total ?? 0)}</span>
+                  <span className="font-bold text-brand-700 dark:text-brand-200">الإجمالي بعد الخصم: {fmtMoney(c?.total ?? 0)}</span>
                   <button
                     onClick={() => setLines((prev) => (prev.length > 1 ? prev.filter((_, x) => x !== i) : [blankLine()]))}
                     className="rounded-lg px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
@@ -177,7 +177,7 @@ export default function PurchasesPage() {
           ➕ إضافة صنف
         </button>
 
-        <div className="mt-4 rounded-xl bg-green-50 p-3 text-sm dark:bg-green-950">
+        <div className="mt-4 rounded-xl bg-brand-50 p-3 text-sm dark:bg-brand-950">
           <div className="flex justify-between"><span>المجموع قبل الخصم:</span><b>{fmtMoney(computed.subtotal)}</b></div>
           <div className="flex justify-between"><span>إجمالي الخصم:</span><b>{fmtMoney(computed.discTotal)}</b></div>
           <div className="flex justify-between text-lg"><span>الإجمالي بعد الخصم:</span><b>{fmtMoney(computed.grand)}</b></div>
@@ -185,7 +185,7 @@ export default function PurchasesPage() {
 
         {!!msg && <p className="mt-2 text-sm font-bold">{msg}</p>}
         <div className="mt-3 flex gap-2">
-          <button onClick={() => void save()} className="flex-1 rounded-lg bg-green-600 py-2.5 font-bold text-white hover:bg-green-700">
+          <button onClick={() => void save()} className="flex-1 rounded-lg bg-brand-600 py-2.5 font-bold text-white hover:bg-brand-700">
             {editingId ? "حفظ التعديل" : "حفظ الفاتورة"}
           </button>
           {!!editingId && <button onClick={reset} className="rounded-lg border px-4 py-2.5">إلغاء</button>}
