@@ -1,18 +1,76 @@
 "use client";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { getSupabase, isSupabaseConfigured, isEmailAllowed, BLOCKED_MESSAGE } from "@/lib/supabase";
 import { inputCls } from "@/components/ui";
+
+const LAST_EMAIL_KEY = "salesapp_last_email";
+const REMEMBER_KEY = "salesapp_remember_email";
+
+function loadRememberedEmail(): { email: string; remember: boolean } {
+  try {
+    const remember = localStorage.getItem(REMEMBER_KEY) !== "0";
+    const email = remember ? localStorage.getItem(LAST_EMAIL_KEY) ?? "" : "";
+    return { email, remember };
+  } catch {
+    return { email: "", remember: true };
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // تحميل البريد المحفوظ تلقائياً عند فتح الصفحة
+  useEffect(() => {
+    const { email: saved, remember: rem } = loadRememberedEmail();
+    if (saved) setEmail(saved);
+    setRemember(rem);
+  }, []);
+
+  // حفظ تلقائي أثناء الكتابة (حتى لو لم يضغط دخول)
+  function onEmailChange(v: string) {
+    setEmail(v);
+    try {
+      if (remember && v.trim()) {
+        localStorage.setItem(LAST_EMAIL_KEY, v.trim().toLowerCase());
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function onRememberChange(v: boolean) {
+    setRemember(v);
+    try {
+      localStorage.setItem(REMEMBER_KEY, v ? "1" : "0");
+      if (v) {
+        if (email.trim()) localStorage.setItem(LAST_EMAIL_KEY, email.trim().toLowerCase());
+      } else {
+        localStorage.removeItem(LAST_EMAIL_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function persistEmail(em: string) {
+    try {
+      if (remember) {
+        localStorage.setItem(LAST_EMAIL_KEY, em);
+        localStorage.setItem(REMEMBER_KEY, "1");
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +113,7 @@ export default function LoginPage() {
         }
         setUser(em, "local");
       }
+      persistEmail(em);
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ — حاول مجدداً");
@@ -77,7 +136,7 @@ export default function LoginPage() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => onEmailChange(e.target.value)}
               className={`${inputCls} dir-ltr`}
               dir="ltr"
               placeholder="you@store.com"
@@ -96,6 +155,15 @@ export default function LoginPage() {
               autoComplete="current-password"
             />
           </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => onRememberChange(e.target.checked)}
+              className="h-4 w-4 accent-green-600"
+            />
+            تذكر البريد الإلكتروني على هذا الجهاز
+          </label>
           {!!error && (
             <div className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
               {error}

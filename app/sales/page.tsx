@@ -7,6 +7,7 @@ import { uid, nowISO, toNum, fmtMoney, fmtDate, calcSaleLineTotal, calcSaleLineP
 import { Field, inputCls, Empty } from "@/components/ui";
 import { BarcodeInput } from "@/components/BarcodeInput";
 import { InvoicePrint } from "@/components/InvoicePrint";
+import { shareInvoice, openWhatsAppShare, copyInvoiceText, canNativeShare } from "@/lib/invoiceShare";
 
 interface DraftRow { key: string; productId?: string; name: string; barcode: string; qty: string; salePrice: string; purchasePrice: number }
 
@@ -20,6 +21,9 @@ export default function SalesPage() {
   const [manualName, setManualName] = useState("");
   const [lastSale, setLastSale] = useState<Sale | null>(null);
   const [showPrint, setShowPrint] = useState(false);
+  const [shareMsg, setShareMsg] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     if (ready && !userEmail) router.replace("/login");
@@ -90,17 +94,56 @@ export default function SalesPage() {
     try {
       await addSale(sale);
       setLastSale(sale);
-      setShowPrint(false);
+      setShowPrint(true);
+      setShareMsg("");
       setRows([]);
       setDiscount("0");
       setNotes("");
-      setMsg("تم حفظ فاتورة البيع ✅ — يمكنك طباعتها من الأسفل");
+      setMsg("تم حفظ فاتورة البيع ✅ — يمكنك طباعتها أو مشاركتها واتساب من الأسفل");
     } catch {
       setMsg("تعذر الحفظ — حاول مجدداً");
     }
   }
 
   const sorted = useMemo(() => [...sales].sort((a, b) => (b.date > a.date ? 1 : -1)), [sales]);
+
+  // ——— مشاركة الفاتورة ———
+  async function onShare() {
+    if (!lastSale) return;
+    setSharing(true);
+    setShareMsg("");
+    try {
+      const res = await shareInvoice(lastSale, settings.companyName);
+      if (res === "shared") setShareMsg("تمت المشاركة بنجاح ✅");
+      else if (res === "copied") setShareMsg("تم نسخ نص الفاتورة — الصقه في واتساب ✅");
+      // تجاهل الإلغاء الصامت (AbortError → "failed" بدون رسالة)
+    } catch {
+      setShareMsg("تعذرت المشاركة — جرّب النسخ أو الواتساب");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  function onWhatsApp() {
+    if (!lastSale) return;
+    setShareMsg("");
+    try {
+      openWhatsAppShare(lastSale, settings.companyName, customerPhone);
+    } catch {
+      setShareMsg("تعذر فتح واتساب");
+    }
+  }
+
+  async function onCopy() {
+    if (!lastSale) return;
+    setShareMsg("");
+    try {
+      const ok = await copyInvoiceText(lastSale, settings.companyName);
+      setShareMsg(ok ? "تم نسخ الفاتورة ✅" : "تعذر النسخ");
+    } catch {
+      setShareMsg("تعذر النسخ");
+    }
+  }
 
   if (!ready) return <p className="py-10 text-center">جارٍ التحميل…</p>;
   if (!userEmail) return null;
@@ -184,14 +227,46 @@ export default function SalesPage() {
 
       {!!lastSale && (
         <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-          <div className="no-print mb-2 flex gap-2">
+          <div className="no-print mb-3 flex flex-wrap gap-2">
             <button onClick={() => setShowPrint((v) => !v)} className="rounded-lg border px-4 py-2 text-sm">
               {showPrint ? "إخفاء المعاينة" : "معاينة الفاتورة"}
             </button>
             <button onClick={() => window.print()} className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700">
               🖨️ طباعة
             </button>
+            <button
+              onClick={() => void onShare()}
+              disabled={sharing}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              title={canNativeShare() ? "مشاركة عبر تطبيقات الجهاز" : "نسخ نص الفاتورة للمشاركة"}
+            >
+              {sharing ? "جارٍ…" : "📤 مشاركة"}
+            </button>
+            <button
+              onClick={onWhatsApp}
+              className="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:brightness-95"
+              title="إرسال الفاتورة واتساب"
+            >
+              💬 واتساب
+            </button>
+            <button onClick={() => void onCopy()} className="rounded-lg border px-4 py-2 text-sm">
+              📋 نسخ
+            </button>
           </div>
+          <div className="no-print mb-3 flex flex-col gap-1 sm:flex-row sm:items-center">
+            <label className="text-xs font-semibold text-gray-500">
+              رقم واتساب العميل (اختياري — بدون +، مثال 2010xxxxxxxx):
+            </label>
+            <input
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="2010xxxxxxxx"
+              inputMode="tel"
+              dir="ltr"
+              className={`${inputCls} sm:max-w-[200px]`}
+            />
+          </div>
+          {!!shareMsg && <p className="no-print mb-2 text-sm font-bold text-green-700 dark:text-green-400">{shareMsg}</p>}
           {showPrint && <InvoicePrint sale={lastSale} companyName={settings.companyName} />}
         </div>
       )}
