@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { StatCard, Empty } from "@/components/ui";
-import { fmtMoney, toNum } from "@/lib/utils";
+import { useApp } from "../../lib/store";
+import { StatCard, Empty } from "../../components/ui";
+import { fmtMoney, toNum } from "../../lib/utils";
 
 type Range = "today" | "month" | "all";
 

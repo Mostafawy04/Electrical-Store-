@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { StatCard, Empty } from "@/components/ui";
-import { fmtMoney, fmtDate, isSameDay, isSameMonth, toNum } from "@/lib/utils";
+import { useApp } from "../lib/store";
+import { StatCard, Empty } from "../components/ui";
+import { fmtMoney, fmtDate, isSameDay, isSameMonth, toNum } from "../lib/utils";
 
 export default function Dashboard() {
   const router = useRouter();

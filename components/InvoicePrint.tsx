@@ -1,9 +1,9 @@
 "use client";
 import { useMemo } from "react";
-import type { Sale } from "@/lib/types";
-import { DEFAULT_STORE_PHONES, calcInvoiceTotals, displayInvoiceNo } from "@/lib/types";
-import { fmtMoney, fmtDate, toNum } from "@/lib/utils";
-import { getRandomDhikr } from "@/lib/i18n";
+import type { Sale } from "../lib/types";
+import { DEFAULT_STORE_PHONES, calcInvoiceTotals, displayInvoiceNo } from "../lib/types";
+import { fmtMoney, fmtDate, toNum } from "../lib/utils";
+import { getRandomDhikr } from "../lib/i18n";
 
 interface Props {
   sale: Sale;

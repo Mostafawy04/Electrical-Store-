@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import type { Sale, SaleItem } from "@/lib/types";
-import { displayInvoiceNo } from "@/lib/types";
-import { uid, nowISO, toNum, fmtMoney, fmtDate, calcSaleLineTotal, calcSaleLineProfit } from "@/lib/utils";
-import { Field, inputCls, Empty } from "@/components/ui";
-import { BarcodeInput } from "@/components/BarcodeInput";
-import { InvoicePrint } from "@/components/InvoicePrint";
-import { shareInvoice, openWhatsAppShare, copyInvoiceText, downloadInvoiceImage, canNativeShare, canShareFiles } from "@/lib/invoiceShare";
-import { prefetchInvoiceImage } from "@/lib/invoiceImage";
+import { useApp } from "../../lib/store";
+import type { Sale, SaleItem } from "../../lib/types";
+import { displayInvoiceNo } from "../../lib/types";
+import { uid, nowISO, toNum, fmtMoney, fmtDate, calcSaleLineTotal, calcSaleLineProfit } from "../../lib/utils";
+import { Field, inputCls, Empty } from "../../components/ui";
+import { BarcodeInput } from "../../components/BarcodeInput";
+import { InvoicePrint } from "../../components/InvoicePrint";
+import { shareInvoice, openWhatsAppShare, copyInvoiceText, downloadInvoiceImage, canNativeShare, canShareFiles } from "../../lib/invoiceShare";
+import { prefetchInvoiceImage } from "../../lib/invoiceImage";
 
 interface DraftRow { key: string; productId?: string; name: string; barcode: string; qty: string; salePrice: string; purchasePrice: number }
 interface DraftState { rows: DraftRow[]; discount: string; notes: string; customerName: string; prevBalance: string; paid: string; editingId: string | null }

@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useApp } from "@/lib/store";
-import { DHIKR_LIST, pickNextDhikrIndex } from "@/lib/i18n";
+import { useApp } from "../lib/store";
+import { DHIKR_LIST, pickNextDhikrIndex } from "../lib/i18n";
 
 const LAST_INDEX_KEY = "salesapp_dhikr_last_index";
 const ICONS = ["🤲", "🌿", "✨", "💚", "🌙", "🤍"];

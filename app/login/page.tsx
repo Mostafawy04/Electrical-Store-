@@ -2,9 +2,9 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { getSupabase, isSupabaseConfigured, isEmailAllowed, BLOCKED_MESSAGE } from "@/lib/supabase";
-import { inputCls } from "@/components/ui";
+import { useApp } from "../../lib/store";
+import { getSupabase, isSupabaseConfigured, isEmailAllowed, BLOCKED_MESSAGE } from "../../lib/supabase";
+import { inputCls } from "../../components/ui";
 
 const LAST_EMAIL_KEY = "salesapp_last_email";
 const REMEMBER_KEY = "salesapp_remember_email";

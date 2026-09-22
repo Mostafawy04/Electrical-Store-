@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { toNum, fmtMoney } from "@/lib/utils";
-import { Field, inputCls, Empty } from "@/components/ui";
-import { BarcodeInput } from "@/components/BarcodeInput";
+import { useApp } from "../../lib/store";
+import { toNum, fmtMoney } from "../../lib/utils";
+import { Field, inputCls, Empty } from "../../components/ui";
+import { BarcodeInput } from "../../components/BarcodeInput";
 
 export default function InventoryPage() {
   const router = useRouter();

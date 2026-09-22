@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { AppProvider } from "@/lib/store";
-import { Shell } from "@/components/Shell";
-import { DhikrToast } from "@/components/DhikrToast";
+import { AppProvider } from "../lib/store";
+import { Shell } from "../components/Shell";
+import { DhikrToast } from "../components/DhikrToast";
 
 export const metadata: Metadata = {
   title: "نظام المبيعات والمشتريات",

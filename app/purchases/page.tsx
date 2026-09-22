@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import type { Purchase, PurchaseItem } from "@/lib/types";
-import { uid, nowISO, toNum, fmtMoney, fmtDate, calcPurchaseLineTotal } from "@/lib/utils";
-import { Field, inputCls, Empty } from "@/components/ui";
+import { useApp } from "../../lib/store";
+import type { Purchase, PurchaseItem } from "../../lib/types";
+import { uid, nowISO, toNum, fmtMoney, fmtDate, calcPurchaseLineTotal } from "../../lib/utils";
+import { Field, inputCls, Empty } from "../../components/ui";
 
 interface DraftLine { name: string; qty: string; price: string; discount: string; salePrice: string; barcode: string }
 

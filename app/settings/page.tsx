@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { Field, inputCls } from "@/components/ui";
-import { buildBackup, downloadBackup, backupViaEmail, restoreBackup, backupToCloud } from "@/lib/backup";
-import { toNum } from "@/lib/utils";
-import { db } from "@/lib/db";
+import { useApp } from "../../lib/store";
+import { Field, inputCls } from "../../components/ui";
+import { buildBackup, downloadBackup, backupViaEmail, restoreBackup, backupToCloud } from "../../lib/backup";
+import { toNum } from "../../lib/utils";
+import { db } from "../../lib/db";
 
 function fmtBytes(n?: number): string {
   if (!n || n <= 0) return "0";
@@ -118,7 +118,7 @@ export default function SettingsPage() {
       if (r.ok) {
         // رفع كل المستعاد للسحابة فوراً (مصالحة كاملة) + تحديث الواجهة
         try {
-          const { requestForceRepair } = await import("@/lib/sync");
+          const { requestForceRepair } = await import("../../lib/sync");
           requestForceRepair();
         } catch { /* ignore */ }
         void doSync().catch(() => undefined);

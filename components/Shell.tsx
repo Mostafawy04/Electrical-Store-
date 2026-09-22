@@ -2,9 +2,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
-import { t } from "@/lib/i18n";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useApp } from "../lib/store";
+import { t } from "../lib/i18n";
+import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 
 const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "https://wa.me/201113008004";
 const YOUTUBE = process.env.NEXT_PUBLIC_YOUTUBE_URL ?? "https://youtube.com/@mostafawy04?si=Qlc05WchkaOHN3Dz";
