@@ -112,16 +112,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // حمّل المحلي أولاً ليعمل التطبيق فوراً (Offline-first)
       await refresh();
       try {
-        if (isSupabaseConfigured()) {
-          const sb = getSupabase();
-          const { data } = (await sb?.auth.getSession()) ?? { data: { session: null } };
-          if (alive && data?.session?.user) {
+        const sb = getSupabase();
+        if (!isSupabaseConfigured() || !sb) {
+          try {
+            const em = localStorage.getItem("salesapp_session_email");
+            if (alive && em) { setUserEmail(em); setUserId("local"); }
+          } catch { /* ignore */ }
+        } else {
+          const { data } = await sb.auth.getSession();
+          if (alive && data.session?.user) {
             const u = data.session.user;
             setUserEmail(u.email ?? null);
-            setUserId(u.id ?? null);
+            setUserId(u.id);
             // اسحب بيانات هذا المستخدم من السحابة فوراً
             try {
-              const r = await syncNow(u.id ?? null);
+              const r = await syncNow(u.id);
               if (alive && r.pulled) {
                 setLastSync(nowISO());
                 await refresh();
@@ -130,17 +135,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           // تابع الدخول/الخروج لاحقاً (انتهاء الجلسة، دخول جديد…)
           try {
-            const { data: listener } = sb?.auth.onAuthStateChange((event, session) => {
+            const { data: listener } = sb.auth.onAuthStateChange((event, session) => {
               if (!alive) return;
               if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
                 const u = session?.user;
                 if (u) {
                   setUserEmail(u.email ?? null);
-                  setUserId(u.id ?? null);
+                  setUserId(u.id);
                   // دخول (جديد أو مستعاد): اسحب السحابة وادمجها مع المحلي
                   void (async () => {
                     try {
-                      const r = await syncNow(u.id ?? null);
+                      const r = await syncNow(u.id);
                       if (r.pulled) {
                         setLastSync(nowISO());
                         await refresh();
@@ -154,14 +159,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setUserId(null);
                 try { localStorage.removeItem("salesapp_session_email"); } catch { /* ignore */ }
               }
-            }) ?? { data: { subscription: null } };
-            const sub = (listener as { subscription?: { unsubscribe: () => void } | null })?.subscription ?? null;
-            authSub = sub;
-          } catch { /* ignore */ }
-        } else {
-          try {
-            const em = localStorage.getItem("salesapp_session_email");
-            if (alive && em) { setUserEmail(em); setUserId("local"); }
+            });
+            authSub = listener.subscription;
           } catch { /* ignore */ }
         }
       } catch { /* ignore */ }
