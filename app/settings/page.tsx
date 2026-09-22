@@ -5,10 +5,23 @@ import { useApp } from "@/lib/store";
 import { Field, inputCls } from "@/components/ui";
 import { buildBackup, downloadBackup, backupViaEmail, restoreBackup, backupToCloud } from "@/lib/backup";
 import { toNum } from "@/lib/utils";
+import { db } from "@/lib/db";
+
+function fmtBytes(n?: number): string {
+  if (!n || n <= 0) return "0";
+  const units = ["بايت", "كيلوبايت", "ميجابايت", "جيجابايت"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i += 1; }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { ready, userEmail, userId, settings, saveSettings, products, purchases, sales, customers, addOrUpdateCustomer, deleteCustomer } = useApp();
+  const {
+    ready, userEmail, userId, settings, saveSettings, products, purchases, sales, customers,
+    addOrUpdateCustomer, deleteCustomer, pendingOps, lastSync, online, syncing, doSync,
+  } = useApp();
   const [company, setCompany] = useState("");
   const [phones, setPhones] = useState("");
   const [msg, setMsg] = useState("");
@@ -16,8 +29,21 @@ export default function SettingsPage() {
   const [cusName, setCusName] = useState("");
   const [cusPhone, setCusPhone] = useState("");
   const [cusBalance, setCusBalance] = useState("0");
+  const [storage, setStorage] = useState<{ persisted: boolean; usage?: number; quota?: number }>({ persisted: false });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const phonesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // حالة التخزين الدائم + المساحة المستخدمة (تأكد أن البيانات لا تُمسح أبداً)
+  useEffect(() => {
+    if (!ready) return;
+    let alive = true;
+    (async () => {
+      try { await db.requestPersistentStorage(); } catch { /* ignore */ }
+      const info = await db.storageInfo().catch(() => ({ persisted: false } as { persisted: boolean; usage?: number; quota?: number }));
+      if (alive) setStorage(info);
+    })();
+    return () => { alive = false; };
+  }, [ready, pendingOps]);
 
   useEffect(() => {
     if (ready && !userEmail) router.replace("/login");
@@ -89,7 +115,17 @@ export default function SettingsPage() {
       const text = await f.text();
       const json = JSON.parse(text);
       const r = await restoreBackup(json);
-      setMsg(r.ok ? "تمت استعادة النسخة — حدّث الصفحة ✅" : `ملف غير صالح: ${r.error}`);
+      if (r.ok) {
+        // رفع كل المستعاد للسحابة فوراً (مصالحة كاملة) + تحديث الواجهة
+        try {
+          const { requestForceRepair } = await import("@/lib/sync");
+          requestForceRepair();
+        } catch { /* ignore */ }
+        void doSync().catch(() => undefined);
+        setMsg("تمت استعادة النسخة وحفظها محلياً ✅ — سيتم رفعها للسحابة الآن");
+      } else {
+        setMsg(`ملف غير صالح: ${r.error}`);
+      }
     } catch {
       setMsg("تعذر قراءة الملف");
     }
@@ -193,7 +229,8 @@ export default function SettingsPage() {
                 const nm = cusName.trim();
                 if (!nm) { setMsg("أدخل اسم العميل أولاً"); return; }
                 void addOrUpdateCustomer({ name: nm, phone: cusPhone.trim() || undefined, balance: toNum(cusBalance) })
-                  .then(() => { setCusName(""); setCusPhone(""); setCusBalance("0"); setMsg(`تم حفظ حساب ${nm} ✅`); });
+                  .then(() => { setCusName(""); setCusPhone(""); setCusBalance("0"); setMsg(`تم حفظ حساب ${nm} ✅`); })
+                  .catch(() => setMsg("⚠️ تعذر حفظ بيانات العميل — حاول مجدداً"));
               }}
               className="w-full rounded-lg bg-slate-800 py-2.5 font-bold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
             >
@@ -216,7 +253,7 @@ export default function SettingsPage() {
                   >
                     تعديل
                   </button>
-                  <button onClick={() => { if (confirm(`حذف حساب ${c.name}؟`)) void deleteCustomer(c.id); }} className="text-xs text-red-600">
+                  <button onClick={() => { if (confirm(`حذف حساب ${c.name}؟`)) void deleteCustomer(c.id).catch(() => setMsg("⚠️ تعذر حذف الحساب")); }} className="text-xs text-red-600">
                     حذف
                   </button>
                 </div>
@@ -224,6 +261,50 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 className="mb-3 font-bold">🛟 حالة الحفظ والمزامنة — لا تضيع أي بيانات</h3>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-800">
+            <p className="mb-1 font-black">📱 محفوظ على هذا الجهاز (يعمل Offline)</p>
+            <p>المنتجات: {products.length} • العملاء: {customers.length}</p>
+            <p>المشتريات: {purchases.length} • المبيعات: {sales.length}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              يُكتب في IndexedDB داخل معاملة ذرّية قبل أي إرسال — إن فشل الحفظ تظهر رسالة تنبيه ولا تُقحم الفاتورة نصف حفظ.
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-800">
+            <p className="mb-1 font-black">☁️ المزامنة مع Supabase</p>
+            <p>{online ? "🟢 متصل بالسحابة" : "🔴 أوفلاين — سترفع تلقائياً عند عودة الإنترنت"}{syncing ? " • جارٍ المزامنة…" : ""}</p>
+            <p>
+              عمليات بانتظار الرفع: <b className={pendingOps > 0 ? "text-amber-600" : "text-emerald-600"}>{pendingOps}</b>
+            </p>
+            <p className="text-xs text-gray-500">
+              {lastSync ? `آخر مزامنة: ${new Date(lastSync).toLocaleString("ar-EG")}` : "لم تتم مزامنة بعد في هذه الجلسة"}
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-800">
+            <p className="mb-1 font-black">💾 التخزين الدائم للمتصفح</p>
+            <p>
+              {storage.persisted
+                ? "✅ مفعّل — المتصفح لن يمسح بياناتك أبداً حتى لو امتلأت المساحة"
+                : "⏳ يتم طلبه تلقائياً عند أول فتح للتطبيق"}
+            </p>
+            <p className="text-xs text-gray-500">
+              المستخدم: {fmtBytes(storage.usage)}{storage.quota ? ` من ${fmtBytes(storage.quota)}` : ""}
+            </p>
+          </div>
+          <div className="flex items-center">
+            <button
+              onClick={() => void doSync()}
+              disabled={syncing}
+              className="w-full rounded-lg bg-brand-600 py-2.5 font-bold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {syncing ? "جارٍ المزامنة…" : "🔄 مزامنة الآن"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">

@@ -204,7 +204,7 @@ export default function PurchasesPage() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => editExisting(p)} className="rounded-lg border px-3 py-1 text-sm">تعديل</button>
-                  <button onClick={() => { if (confirm("حذف هذه الفاتورة؟")) void deletePurchase(p.id); }} className="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">حذف</button>
+                  <button onClick={() => { if (confirm("حذف هذه الفاتورة؟")) void deletePurchase(p.id).catch(() => setMsg("⚠️ تعذر حذف فاتورة الشراء")); }} className="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">حذف</button>
                 </div>
               </div>
             ))}

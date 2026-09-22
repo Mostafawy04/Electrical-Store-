@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: "#0f766e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -51,13 +51,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               try {
                 if ('serviceWorker' in navigator) {
                   window.addEventListener('load', function(){
-                    navigator.serviceWorker.register('/sw.js').catch(function(){});
+                    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function(){});
                   });
                 }
-                // ثيم مبكر لمنع الوميض
-                var s = null;
-                try { s = localStorage.getItem('salesapp_settings'); } catch(e){}
-                // الإعدادات التفصيلية تُطبق من الـ Provider لاحقاً
               } catch(e){}
             })();`,
           }}

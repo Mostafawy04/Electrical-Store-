@@ -21,11 +21,16 @@ const NAV = [
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { settings, userEmail, setUser, online, syncing, doSync } = useApp();
+  const { settings, userEmail, setUser, online, syncing, doSync, pendingOps, lastSync } = useApp();
 
   async function logout() {
     try {
-      if (isSupabaseConfigured()) await getSupabase()?.auth.signOut();
+      // ضمان وصول كل العمليات المعلقة إلى السحابة قبل إنهاء الجلسة (البيانات لا تُمسح أبداً)
+      if (isSupabaseConfigured()) {
+        try { await doSync(); } catch { /* ignore */ }
+        await getSupabase()?.auth.signOut();
+      }
+      // لا نمسح أي بيانات محلية — تبقى محفوظة وتعود عند الدخول مرة أخرى
       setUser(null, null);
       router.push("/login");
     } catch {
@@ -46,14 +51,20 @@ export function Shell({ children }: { children: ReactNode }) {
             <p className="truncate text-xs text-gray-500 dark:text-gray-400">
               {userEmail ?? ""} • {online ? "🟢 متصل" : "🔴 أوفلاين — يعمل محلياً"}
               {syncing ? " • جارٍ المزامنة…" : ""}
+              {pendingOps > 0
+                ? ` • ⏳ ${pendingOps} عملية بانتظار المزامنة (محفوظة محلياً)`
+                : " • ✅ كل البيانات محفوظة"}
+              {lastSync ? ` • آخر مزامنة ${new Date(lastSync).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}` : ""}
             </p>
           </div>
           <button
             onClick={() => void doSync()}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
-            title="مزامنة الآن"
+            className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 ${
+              pendingOps > 0 ? "animate-pulse border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" : ""
+            }`}
+            title={pendingOps > 0 ? `${pendingOps} عملية محفوظة محلياً بانتظار السحابة — اضغط للمزامنة الآن` : "مزامنة الآن"}
           >
-            🔄
+            {pendingOps > 0 ? `⏳ ${pendingOps}` : "🔄"}
           </button>
           <button
             onClick={() => void logout()}

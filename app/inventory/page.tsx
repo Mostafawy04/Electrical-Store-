@@ -93,7 +93,7 @@ export default function InventoryPage() {
                 >
                   تعديل
                 </button>
-                <button onClick={() => { if (confirm(`حذف ${p.name}؟`)) void deleteProduct(p.id); }} className="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">
+                <button onClick={() => { if (confirm(`حذف ${p.name}؟`)) void deleteProduct(p.id).catch(() => setMsg("⚠️ تعذر حذف الصنف")); }} className="rounded-lg border border-red-200 px-3 py-1 text-sm text-red-600">
                   حذف
                 </button>
               </div>
